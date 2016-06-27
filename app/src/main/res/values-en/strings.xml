@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <drawable name="clr_normal">#00ffffff</drawable>
+    <drawable name="clr_pressed">#3333aa</drawable>
+
+    <string name="app_name">MediaPlayer</string>
+    <string name="title_activity_ppt">PPT</string>
+
+    <string name="suijibofang">Random</string>
+    <string name="quanbubofang">All</string>
+    <string name="quanbuxunhuan">Circle</string>
+    <string name="danqubofang">Single</string>
+    <string name="shebei">device</string>
+    <string name="gequmingcheng">song name</string>
+    <string name="zhuanji">album</string>
+    <string name="geshou">singer</string>
+
+    <string name="yinpin">Audio</string>
+    <string name="shipin">Video</string>o
+    <string name="tupian">Photo</string>
+    <string name="jiazaizhong">Loading</string>
+    <string name="wuwenjian">NO FILE</string>
+
+    <string name="jingao">Warning</string>
+    <string name="queding">OK</string>
+    <string name="quxiao">Cancel</string>
+
+    <string name="title_activity_base">BaseActivity</string>
+    <string name="title_activity_surface_view">SurfaceViewActivity</string>
+
+    <string name="dialog_str_usb">U disk insert,whether to switch?</string>
+    <string name="dialog_str_sd">SD Card insert,whether to switch?</string>
+    <string name="dialog_str_bt">Bluetooth is connected,whether to switch?</string>
+</resources>

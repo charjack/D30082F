@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animation-list xmlns:android="http://schemas.android.com/apk/res/android"
+    android:oneshot="false">
+    <item android:drawable="@mipmap/jiazai_00_ico" android:duration="300" />
+    <item android:drawable="@mipmap/jiazai_01_ico" android:duration="300" />
+    <item android:drawable="@mipmap/jiazai_02_ico" android:duration="300" />
+    <item android:drawable="@mipmap/jiazai_03_ico" android:duration="300" />
+    <item android:drawable="@mipmap/jiazai_04_ico" android:duration="300" />
+    <item android:drawable="@mipmap/jiazai_05_ico" android:duration="300" />
+    <item android:drawable="@mipmap/jiazai_06_ico" android:duration="300" />
+    <item android:drawable="@mipmap/jiazai_07_ico" android:duration="300" />
+    <item android:drawable="@mipmap/jiazai_08_ico" android:duration="300" />
+    <item android:drawable="@mipmap/jiazai_09_ico" android:duration="300" />
+    <item android:drawable="@mipmap/jiazai_10_ico" android:duration="300" />
+    <item android:drawable="@mipmap/jiazai_11_ico" android:duration="300" />
+    <item android:drawable="@mipmap/jiazai_12_ico" android:duration="300" />
+</animation-list> 

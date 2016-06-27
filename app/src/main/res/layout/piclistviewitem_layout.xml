@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal">
+
+    <com.wedesign.mediaplayer.Utils.MyImageView
+        android:layout_width="131dp"
+        android:layout_height="74dp"
+        android:padding="2dp"
+        android:id="@+id/pic_imageView_id"
+        android:scaleType="fitXY"
+        android:src="@mipmap/loading2" />
+        />
+
+</LinearLayout>

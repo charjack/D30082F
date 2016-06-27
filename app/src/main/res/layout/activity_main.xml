@@ -1,0 +1,253 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:id="@+id/content"
+    android:background="@mipmap/background"
+    tools:context=".MainActivity">
+
+    <FrameLayout
+        android:id="@+id/frame_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@+id/button_layout_dilan"
+        android:background="@mipmap/background">
+
+        <!--这里需要一个布局来装载fragment-->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:id="@+id/media_fragment"/>
+
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:id="@+id/media_fragment_image"
+            android:src="@mipmap/background_play"
+            android:visibility="gone"
+            />
+
+        <!-- 点击列表出来的列表播放界面-->
+        <RelativeLayout
+            android:id="@+id/leibieliebiao"
+            android:layout_width="470dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="right"
+            android:visibility="gone"
+            android:background="@mipmap/liebiaobeijing">
+
+            <LinearLayout
+                android:id="@+id/leibiebutton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/button_music"
+                    android:layout_width="wrap_content"
+                    android:layout_height="52dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/liebiao_button_selector"
+                    android:text="@string/yinpin"
+                    android:textColor="#ffffff"
+                    android:textSize="25sp" />
+
+                <Button
+                    android:id="@+id/button_video"
+                    android:layout_width="wrap_content"
+                    android:layout_height="52dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/liebiao_button_selector"
+                    android:text="@string/shipin"
+                    android:textColor="#ffffff"
+                    android:textSize="25sp" />
+
+                <Button
+                    android:id="@+id/button_pic"
+                    android:layout_width="wrap_content"
+                    android:layout_height="52dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/liebiao_button_selector"
+                    android:text="@string/tupian"
+                    android:textColor="#ffffff"
+                    android:textSize="25sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/loading_layout"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <ImageView
+                    android:id="@+id/loading_image"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    />
+                <TextView
+                    android:id="@+id/loading_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:text="@string/jiazaizhong"
+                    android:textColor="#ffffff"
+                    android:textSize="20sp" />
+            </LinearLayout>
+            <ListView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:id="@+id/musiclistview_id"
+                android:divider="#888"
+                android:dividerHeight="1dp"
+                android:layout_marginLeft="10dp"
+                android:layout_marginRight="10dp"
+                android:layout_below="@+id/leibiebutton"
+                android:scrollbarStyle="outsideInset"
+                android:visibility="gone">
+            </ListView>
+
+            <ListView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:id="@+id/videolistview_id"
+                android:divider="#888"
+                android:dividerHeight="1dp"
+                android:layout_marginLeft="10dp"
+                android:layout_marginRight="10dp"
+                android:layout_below="@+id/leibiebutton"
+                android:scrollbarStyle="outsideInset"
+                android:visibility="gone">
+            </ListView>
+
+            <GridView
+                android:id="@+id/gridview_id"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:numColumns="3"
+                android:layout_marginLeft="20dp"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="20dp"
+                android:layout_marginRight="10dp"
+                android:verticalSpacing="20dp"
+                android:horizontalSpacing="20dp"
+                android:scrollbarStyle="outsideInset"
+                android:layout_below="@+id/leibiebutton"
+                android:visibility="gone">
+            </GridView>
+        </RelativeLayout>
+    </FrameLayout>
+
+    <LinearLayout
+        android:id="@+id/button_layout_dilan"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:id="@+id/button_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:background="@mipmap/dilan"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/button_shangqu"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/button_selector"
+                android:src="@mipmap/shangqu" />
+
+            <ImageButton
+                android:id="@+id/button_bofang"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/button_selector"
+                android:src="@mipmap/bofang" />
+
+            <ImageButton
+                android:id="@+id/button_xiaqu"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/button_selector"
+                android:src="@mipmap/xiaqu" />
+
+            <ImageButton
+                android:id="@+id/button_play_mode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/button_selector"
+                android:src="@mipmap/suiji" />
+
+            <ImageButton
+                android:id="@+id/button_fangda"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/button_selector"
+                android:src="@mipmap/fangda"
+                android:visibility="gone" />
+
+            <ImageButton
+                android:id="@+id/button_suoxiao"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/button_selector"
+                android:src="@mipmap/suoxiao"
+                android:visibility="gone" />
+
+            <ImageButton
+                android:id="@+id/button_liebiao"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/button_selector"
+                android:src="@mipmap/liebiao" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/button_layout_bluetooth"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:background="@mipmap/dilan_bluetooth"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <ImageButton
+                android:id="@+id/button_shangqu_bluetooth"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/button_selector_bluetooth"
+                android:src="@mipmap/shangqu_bluetooth"
+                android:visibility="gone" />
+
+            <ImageButton
+                android:id="@+id/button_bofang_bluetooth"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/button_selector_bluetooth"
+                android:src="@mipmap/bofang_bluetooth"
+                android:visibility="gone" />
+
+            <ImageButton
+                android:id="@+id/button_xiaqu_bluetooth"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/button_selector_bluetooth"
+                android:src="@mipmap/xiaqu_bluetooth"
+                android:visibility="gone" />
+        </LinearLayout>
+
+    </LinearLayout>
+</RelativeLayout>

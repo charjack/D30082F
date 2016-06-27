@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <drawable name="clr_normal">#00ffffff</drawable>
+    <drawable name="clr_pressed">#3333aa</drawable>
+
+    <string name="app_name">多媒体</string>
+    <string name="title_activity_ppt">幻灯片</string>
+
+    <string name="suijibofang">随机播放</string>
+    <string name="quanbubofang">全部播放</string>
+    <string name="quanbuxunhuan">全部循环</string>
+    <string name="danqubofang">单曲播放</string>
+    <string name="shebei">设备</string>
+    <string name="gequmingcheng">歌曲名称</string>
+    <string name="zhuanji">专辑</string>
+    <string name="geshou">歌手</string>
+
+    <string name="yinpin">音频</string>
+    <string name="shipin">视频</string>
+    <string name="tupian">图片</string>
+    <string name="jiazaizhong">加载中</string>
+    <string name="wuwenjian">无文件</string>
+
+    <string name="jingao">警告</string>
+    <string name="queding">确定</string>
+    <string name="quxiao">取消</string>
+
+    <string name="title_activity_base">BaseActivity</string>
+    <string name="title_activity_surface_view">SurfaceViewActivity</string>
+
+    <string name="dialog_str_usb">检测到U盘插入.是否切换？</string>
+    <string name="dialog_str_sd">检测到SD卡插入.是否切换？</string>
+    <string name="dialog_str_bt">检测到蓝牙连接了.是否切换？</string>
+</resources>
