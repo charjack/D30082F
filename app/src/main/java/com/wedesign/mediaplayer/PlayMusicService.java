@@ -316,7 +316,7 @@ public class PlayMusicService extends Service implements MediaPlayer.OnCompletio
 
     public void nextOrderSD(){
         BaseApp.current_music_play_progressSD = 0;
-        if(BaseApp.current_music_play_numSD+1 >= BaseApp.mp3Infos.size()){
+        if(BaseApp.current_music_play_numSD+1 >= BaseApp.mp3InfosSD.size()){
             mPlayer.pause();
             musicUpdateListener.onLocalMusicStop(1);  //顺序播放，到最后一首暂停，不能停止，否则重新开始播放会出问题
         }else
@@ -340,7 +340,7 @@ public class PlayMusicService extends Service implements MediaPlayer.OnCompletio
     public void prevSD(){
         BaseApp.current_music_play_progressSD = 0;
         if(BaseApp.current_music_play_numSD-1 < 0){
-            BaseApp.current_music_play_numSD = BaseApp.mp3Infos.size()-1;
+            BaseApp.current_music_play_numSD = BaseApp.mp3InfosSD.size()-1;
         }else
         {
             BaseApp.current_music_play_numSD--;

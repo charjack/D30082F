@@ -302,7 +302,7 @@ public class MainActivity extends Activity implements View.OnClickListener,
             public void run() {
                 if(BaseApp.ifliebiaoOpen == 1){
                     BaseApp.liebiaoOpenNum++;
-                    if(BaseApp.liebiaoOpenNum > 3){//3s自动隐藏
+                    if(BaseApp.liebiaoOpenNum > 5){//3s自动隐藏
                         BaseApp.liebiaoOpenNum = 0;
                         myHandler.sendEmptyMessage(Contents.MSG_DISMISS_LIEBIAO_AUTO);
                     }
@@ -1892,6 +1892,7 @@ public class MainActivity extends Activity implements View.OnClickListener,
                         BaseApp.ifinPPT = true;
                         pictureFragment.big_pic_show.setVisibility(View.GONE);
                         pictureFragment.pic_shanglan_textview.setVisibility(View.GONE);
+                        button_layout_dilan.setBackgroundResource(0);
                         pictureFragment.imageView_PPT.setImageURI(Uri.parse(BaseApp.picInfos.get(BaseApp.current_pic_play_numUSB).getData()));
                         pictureFragment.imageView_PPT.setVisibility(View.VISIBLE);
 
@@ -1970,6 +1971,7 @@ public class MainActivity extends Activity implements View.OnClickListener,
                         //开启幻灯片Activity
                         BaseApp.ifinPPT = true;
 
+                        button_layout_dilan.setBackgroundResource(0);
                         pictureFragment.big_pic_show.setVisibility(View.GONE);
                         pictureFragment.pic_shanglan_textview.setVisibility(View.GONE);
                         pictureFragment.imageView_PPT.setImageURI(Uri.parse(BaseApp.picInfosSD.get(BaseApp.current_pic_play_numSD).getData()));
@@ -4262,10 +4264,10 @@ public class MainActivity extends Activity implements View.OnClickListener,
                         if (mBtmusictPlay != null) {
                             if (mBtmusictPlay.mPlayStatus && (mBtmusictPlay.outSoundisPlay == 2)) {
                                 BaseUtils.mlog(TAG, "蓝牙播放");
-                                button_bofang_bluetooth.setImageResource(R.mipmap.bofang_bluetooth);
+                                button_bofang_bluetooth.setImageResource(R.mipmap.bofang_bt2);
                             } else {
                                 BaseUtils.mlog(TAG, "蓝牙暂停-" + mBtmusictPlay.mPlayStatus + "----" + mBtmusictPlay.outSoundisPlay);
-                                button_bofang_bluetooth.setImageResource(R.mipmap.bofang_bluetooth);  //zanting_bluetooth
+                                button_bofang_bluetooth.setImageResource(R.mipmap.bofang_bt2);  //zanting_bluetooth
                             }
                         } else {
                             BaseUtils.mlog(TAG, "-MyHandler-" + "mBtmusictPlay为空了");
@@ -4283,7 +4285,6 @@ public class MainActivity extends Activity implements View.OnClickListener,
                         pictureFragment.big_pic_show.setImageBitmap(bm);
                         button_bofang.setImageResource(R.mipmap.zanting_pic);
                         break;
-
                 }
             }
         }
