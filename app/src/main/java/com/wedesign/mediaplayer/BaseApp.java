@@ -42,6 +42,7 @@ public class BaseApp extends Application {
     public static byte current_fragment = 0;              //当前fragment是哪个  0:音乐 1:视频 2:图片
     public static byte current_media = 0;                 //0:music 1: video 2:picture
     public static byte ifliebiaoOpen = 0;                 //判断列表是否打开了0表示没有打开 1表示打开了
+    public static byte liebiaoOpenNum = 0;                //列表打开之后，定时消失
 
     public static boolean ifhaveUSBdevice = false;
     public static boolean ifhavaSDdevice = false;
@@ -50,7 +51,6 @@ public class BaseApp extends Application {
 
     public static boolean isbindBTservice = false;        //判定服务是否绑定了
     public static int playSourceManager = 0;              //0表示上次播放的源来自usb，1表示上次播放的源来自蓝牙，2表示上次状态是aux，3表示上次播放的源是sd卡，只记录usb和sd
-    public static boolean ifFirstGetState = true;
 
     public static boolean when_scan_click = false;       //判断scan的时候，是否点击了item
     public static boolean when_scan_clickSD = false;       //判断scan的时候，是否点击了item

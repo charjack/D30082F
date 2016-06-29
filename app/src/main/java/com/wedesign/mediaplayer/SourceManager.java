@@ -278,7 +278,7 @@ public class SourceManager {
 
 
 
-	public void requestSourceToVideo() {
+	public void requestSourceToVideo() { //AUX
 		BaseUtils.mlog(TAG, "-------------requestSourceToVideo-------------");
 //		if (!mIsCurrentSource) {
 			srcTo(appId);

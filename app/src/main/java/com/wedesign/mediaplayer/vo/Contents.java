@@ -4,6 +4,7 @@ package com.wedesign.mediaplayer.vo;
  * Created by NANA on 2016/5/7.
  */
 public class Contents {
+    public static final int MSG_DISMISS_LIEBIAO_AUTO= 616;        //改变蓝牙的播放按钮
     public static final int MSG_DEVICE_STATE_UI= 99;        //改变蓝牙的播放按钮
     public static final int MUSIC_PROGRESS = 1;                         //刷新音乐的进度条和时间
     public static final int USB_MUSIC_LOAD_REFRESH_LIST= 12;                      //音乐数据加载完之后的消息

@@ -2,13 +2,16 @@ package com.wedesign.mediaplayer;
 
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Fragment;
+import android.content.DialogInterface;
 import android.graphics.PixelFormat;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -55,7 +58,7 @@ public class VideoFragment extends Fragment implements SurfaceHolder.Callback{
     MyVideoHandler myVideoHandler;
     private boolean selectfromuser = false;
     private boolean selectfromactivity = false;
-    private int fullScreen = 0;
+    public int fullScreen = 0;
 
     @Override
     public void onAttach(Activity activity) {
@@ -73,7 +76,7 @@ public class VideoFragment extends Fragment implements SurfaceHolder.Callback{
         surfaceView_video.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
+                fullScreen = 0;
                 if(!BaseApp.ifFullScreenState) {
                     if(BaseApp.ifliebiaoOpen == 0) {
                         if (ishide) {
@@ -128,7 +131,7 @@ public class VideoFragment extends Fragment implements SurfaceHolder.Callback{
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser) {
-
+                    fullScreen = 0;
                     BaseUtils.mlog(TAG, "-onCreateView-" + "person change the progress...");
                     if (BaseApp.playSourceManager == 0) {
                         BaseApp.current_video_play_progressUSB = progress;
@@ -236,6 +239,7 @@ public class VideoFragment extends Fragment implements SurfaceHolder.Callback{
 
                         } catch (IOException e) {
                             e.printStackTrace();
+                            playVideonext();
                         }
                     }
                     videoUIUpdateListener.onVideoNotifyUIliebiaoChange();
@@ -289,6 +293,7 @@ public class VideoFragment extends Fragment implements SurfaceHolder.Callback{
 
                         } catch (IOException e) {
                             e.printStackTrace();
+                            playVideonext();
                         }
                     }
                     videoUIUpdateListener.onVideoNotifyUIliebiaoChange();
@@ -475,6 +480,7 @@ public class VideoFragment extends Fragment implements SurfaceHolder.Callback{
                     mp.start();
                 } catch (IOException e) {
                     e.printStackTrace();
+                    playVideonext();
                 }
             } else {
                 selectfromuser = false;
@@ -488,6 +494,7 @@ public class VideoFragment extends Fragment implements SurfaceHolder.Callback{
                     mp.start();
                 } catch (IOException e) {
                     e.printStackTrace();
+                    playVideonext();
                 }
             }
             if(videoUIUpdateListener!=null){
@@ -515,6 +522,7 @@ public class VideoFragment extends Fragment implements SurfaceHolder.Callback{
                     mp.start();
                 } catch (IOException e) {
                     e.printStackTrace();
+                    playVideonext();
                 }
             } else {
                 selectfromuser = false;
@@ -528,6 +536,7 @@ public class VideoFragment extends Fragment implements SurfaceHolder.Callback{
                     mp.start();
                 } catch (IOException e) {
                     e.printStackTrace();
+                    playVideonext();
                 }
             }
             if(videoUIUpdateListener!=null){
@@ -588,10 +597,12 @@ public class VideoFragment extends Fragment implements SurfaceHolder.Callback{
                         seekBar2.setProgress(currentVideoProgress);
                         video_current_time.setText(Mp4MediaUtils.formatTime(currentVideoProgress));
 
-                        if(BaseApp.ifliebiaoOpen == 0 && ishide && !BaseApp.ifFullScreenState){
+                        if(BaseApp.ifliebiaoOpen == 0  && !BaseApp.ifFullScreenState){//&& ishide
                             fullScreen++;
-                            if(fullScreen > 4 && !BaseApp.pre_show){
+                            if(fullScreen > 8 && !BaseApp.pre_show){
                                 BaseApp.pre_show = true;
+                                play_video_name.setVisibility(View.GONE);
+                                progress_really_layout.setVisibility(View.GONE);
                                 videoUIUpdateListener.onVideoScreenChangepre(mp.getCurrentPosition());
                             }
                             if(fullScreen >= 12){  //6s再去全屏
@@ -608,8 +619,6 @@ public class VideoFragment extends Fragment implements SurfaceHolder.Callback{
             }
         }
     }
-
-
 
     public interface VideoUIUpdateListener{
         public void onVideoProgressSave();

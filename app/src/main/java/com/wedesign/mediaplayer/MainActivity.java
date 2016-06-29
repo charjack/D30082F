@@ -29,6 +29,7 @@ import android.os.Message;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.FrameLayout;
@@ -55,11 +56,12 @@ import com.wedesign.mediaplayer.vo.Mp4Info;
 import com.wedesign.mediaplayer.vo.PicInfo;
 
 import java.io.File;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
-
+import android.widget.AbsListView.OnScrollListener;
 
 public class MainActivity extends Activity implements View.OnClickListener,
         MusicFragment.MusicUIUpdateListener,
@@ -150,6 +152,8 @@ public class MainActivity extends Activity implements View.OnClickListener,
 
     private Uri mUri;
     public static boolean is_out_for_play = false;
+
+    Timer timer_main;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -163,6 +167,9 @@ public class MainActivity extends Activity implements View.OnClickListener,
 
         mMPbtState = MPbtState.getInstance(getApplicationContext(),myHandler);
         mMPbtState.initBTMP();
+
+        mSourceManager = SourceManager.getInstance(getApplicationContext());
+
 
         final Intent intent_out = getIntent();
         if(intent_out != null) {
@@ -186,7 +193,7 @@ public class MainActivity extends Activity implements View.OnClickListener,
 
         initUI();
         initFragment();
-        myHandler = new MyHandler();
+        myHandler = new MyHandler(this);
         getDevicesState();//主要是给mDeviceStateSD赋值
         //这里主要是获取了四个设备的状态，其中usb和sd卡的状态用mDeviceStateUSB和mDeviceStateSD来标示，而aux和蓝牙只用有木有和是否连接上来标示
 
@@ -252,7 +259,6 @@ public class MainActivity extends Activity implements View.OnClickListener,
         if (BaseApp.ifhavaSDdevice) {
             BaseUtils.mlog(TAG, "mDeviceStateSD----" + mDeviceStateSD);
             BaseApp.ifmusicReadFinishSD = false;
-
             if (mDeviceStateSD == Contents.SD_DEVICE_STATE_SCANNER_FINISHED) {
                 BaseUtils.mlog(TAG, "进入的时候，SD设备加载成功。。。");
                 new MyAsyncTaskSD1().execute();
@@ -290,7 +296,21 @@ public class MainActivity extends Activity implements View.OnClickListener,
         Intent intent = new Intent(this, PlayMusicService.class);
         startService(intent); //启动服务
 
-        mSourceManager = SourceManager.getInstance(getApplicationContext());
+        timer_main = new Timer();
+        timer_main.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                if(BaseApp.ifliebiaoOpen == 1){
+                    BaseApp.liebiaoOpenNum++;
+                    if(BaseApp.liebiaoOpenNum > 3){//3s自动隐藏
+                        BaseApp.liebiaoOpenNum = 0;
+                        myHandler.sendEmptyMessage(Contents.MSG_DISMISS_LIEBIAO_AUTO);
+                    }
+                }else{
+                    BaseApp.liebiaoOpenNum = 0;
+                }
+            }
+        },0,1000);
         BaseUtils.mlog2(TAG, "onCreate", "end");
     }
 
@@ -389,6 +409,7 @@ public class MainActivity extends Activity implements View.OnClickListener,
                 button_liebiao.setImageResource(R.mipmap.liebiao);
 
 
+                BaseApp.liebiaoOpenNum = 0;
 
                 if(BaseApp.current_media == 0) {
                     if(BaseApp.playSourceManager == 0) {
@@ -469,6 +490,19 @@ public class MainActivity extends Activity implements View.OnClickListener,
             }
         });
 
+        musiclistview_id.setOnScrollListener(new OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(AbsListView view, int scrollState) {
+                if(scrollState!= SCROLL_STATE_IDLE){
+                    BaseApp.liebiaoOpenNum = 0;
+                }
+            }
+
+            @Override
+            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+            }
+        });
+
         videolistview_id.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -483,9 +517,9 @@ public class MainActivity extends Activity implements View.OnClickListener,
                 button_bofang.setImageResource(R.mipmap.bofang);
                 button_xiaqu.setImageResource(R.mipmap.xiaqu);
                 button_liebiao.setImageResource(R.mipmap.liebiao);
+                BaseApp.liebiaoOpenNum = 0;
 
-                if(BaseApp.current_media == 1) {
-
+                if (BaseApp.current_media == 1) {
                     button_play_mode.setImageResource(music_play_mode_resource[BaseApp.video_play_mode]);
                     if (BaseApp.playSourceManager == 0) {
                         BaseUtils.mlog(TAG, "-onItemClick-" + "enter the video play...");
@@ -562,6 +596,19 @@ public class MainActivity extends Activity implements View.OnClickListener,
                 }
             }
         });
+        videolistview_id.setOnScrollListener(new OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(AbsListView view, int scrollState) {
+                if(scrollState!= SCROLL_STATE_IDLE){
+                    BaseApp.liebiaoOpenNum = 0;
+                }
+            }
+
+            @Override
+            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+            }
+        });
+
         gridview_id.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -574,27 +621,39 @@ public class MainActivity extends Activity implements View.OnClickListener,
                 button_bofang.setImageResource(R.mipmap.zanting_pic);
                 button_xiaqu.setImageResource(R.mipmap.xiaqu_pic);
                 button_liebiao.setImageResource(R.mipmap.liebiao_pic);
+                BaseApp.liebiaoOpenNum = 0;
 
-
-
-                for(int i=0;i<parent.getCount();i++){
-                    View v=parent.getChildAt(i);
+                for (int i = 0; i < parent.getCount(); i++) {
+                    View v = parent.getChildAt(i);
                     if (position == i) {//当前选中的Item改变背景颜色
                         view.setBackgroundResource(R.mipmap.tupian_p);
                     } else {
-                        if( v != null)  //在当前页面不会进行刷新，需要自己手动设置背景隐藏
+                        if (v != null)  //在当前页面不会进行刷新，需要自己手动设置背景隐藏
                             v.setBackgroundResource(0);
                     }
                 }
-                if(BaseApp.playSourceManager == 0) {
+                if (BaseApp.playSourceManager == 0) {
                     //点击就发送消息
                     BaseApp.current_pic_play_numUSB = position;
                     myHandler.sendEmptyMessage(Contents.IMAGE_ITEM_CLICK);
-                }else if(BaseApp.playSourceManager == 3){
+                } else if (BaseApp.playSourceManager == 3) {
                     //点击就发送消息
                     BaseApp.current_pic_play_numSD = position;
                     myHandler.sendEmptyMessage(Contents.IMAGE_ITEM_CLICK);
                 }
+            }
+        });
+
+        gridview_id.setOnScrollListener(new OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(AbsListView view, int scrollState) {
+                if(scrollState!= SCROLL_STATE_IDLE){
+                    BaseApp.liebiaoOpenNum = 0;
+                }
+            }
+
+            @Override
+            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
             }
         });
 
@@ -840,6 +899,7 @@ public class MainActivity extends Activity implements View.OnClickListener,
     public void onLieBiaoClose() {
         BaseUtils.mlog(TAG, "-------------onLieBiaoClose-------------");
         leibieliebiao.setVisibility(View.GONE);
+        BaseApp.ifliebiaoOpen = 0;
     }
 
     @Override
@@ -982,9 +1042,9 @@ public class MainActivity extends Activity implements View.OnClickListener,
                         musicFragment.zhuanji_name.setText(mp3Info.getAlbum());
                         musicFragment.chuangzhe_name.setText(mp3Info.getArtist());
                         musicFragment.num_order.setText((BaseApp.current_music_play_numUSB + 1) + "/" + BaseApp.mp3Infos.size());
-                        musicFragment.song_current_time.setText(MediaUtils.formatTime(0));
+                        musicFragment.song_current_time.setText(MediaUtils.formatTime(BaseApp.current_music_play_progressUSB));
                         musicFragment.song_total_time.setText(MediaUtils.formatTime(mp3Info.getDuration()));
-                        musicFragment.seekBar1.setProgress(0);
+                        musicFragment.seekBar1.setProgress(BaseApp.current_music_play_progressUSB);
                         musicFragment.seekBar1.setMax((int) mp3Info.getDuration());
 
                         if (mDeviceStateUSB == Contents.USB_DEVICE_STATE_SCANNER_FINISHED && (playMusicService != null && (BaseApp.ispauseUSB ==0 || BaseApp.ispauseUSB ==2))) {
@@ -1041,9 +1101,9 @@ public class MainActivity extends Activity implements View.OnClickListener,
                         musicFragment.zhuanji_name.setText(mp3Info.getAlbum());
                         musicFragment.chuangzhe_name.setText(mp3Info.getArtist());
                         musicFragment.num_order.setText((BaseApp.current_music_play_numUSB + 1) + "/" + BaseApp.mp3Infos.size());
-                        musicFragment.song_current_time.setText(MediaUtils.formatTime(0));
+                        musicFragment.song_current_time.setText(MediaUtils.formatTime(BaseApp.current_music_play_progressUSB));
                         musicFragment.song_total_time.setText(MediaUtils.formatTime(mp3Info.getDuration()));
-                        musicFragment.seekBar1.setProgress(0);
+                        musicFragment.seekBar1.setProgress(BaseApp.current_music_play_progressUSB);
 
                         musicFragment.seekBar1.setMax((int) mp3Info.getDuration());
                         if (mDeviceStateUSB == Contents.USB_DEVICE_STATE_SCANNER_FINISHED && (playMusicService != null && (BaseApp.ispauseUSB ==0 || BaseApp.ispauseUSB ==2))) {
@@ -1081,7 +1141,7 @@ public class MainActivity extends Activity implements View.OnClickListener,
                 }
                 break;
             case 3:
-                BaseApp.current_music_play_progressUSB = 0;
+            //    BaseApp.current_music_play_progressUSB = 0;
                 if(BaseApp.mp3Infos!=null && BaseApp.mp3Infos.size() >0 && BaseApp.current_music_play_numUSB >=0) {
                     if (BaseApp.current_music_play_numUSB >= 0 && BaseApp.current_music_play_numUSB < BaseApp.mp3Infos.size() ) {
                     }else{
@@ -1110,9 +1170,9 @@ public class MainActivity extends Activity implements View.OnClickListener,
 //                    }else{
 //                        musicFragment.num_order.setText(""+BaseApp.mp3Infos.size());
 //                    }
-                    musicFragment.song_current_time.setText(MediaUtils.formatTime(0));
+                    musicFragment.song_current_time.setText(MediaUtils.formatTime(BaseApp.current_music_play_progressUSB));
                     musicFragment.song_total_time.setText(MediaUtils.formatTime(mp3Info.getDuration()));
-                    musicFragment.seekBar1.setProgress(0);
+                    musicFragment.seekBar1.setProgress(BaseApp.current_music_play_progressUSB);
                     musicFragment.seekBar1.setMax((int) mp3Info.getDuration());
                     if(BaseApp.ispauseUSB == 0 || BaseApp.ispauseUSB == 2) {
                         button_bofang.setImageResource(R.mipmap.bofang);
@@ -1140,7 +1200,7 @@ public class MainActivity extends Activity implements View.OnClickListener,
                     BaseUtils.mlog(TAG, "---to sd-----BaseApp.ispauseSD-------" + BaseApp.ispauseSD);
 //                    playMusicService.pauseSD();
                 }
-                BaseApp.current_music_play_progressUSB = 0;
+       //         BaseApp.current_music_play_progressUSB = 0;
                 break;
         }
     }
@@ -1176,9 +1236,9 @@ public class MainActivity extends Activity implements View.OnClickListener,
                         musicFragment.zhuanji_name.setText(mp3InfoSD.getAlbum());
                         musicFragment.chuangzhe_name.setText(mp3InfoSD.getArtist());
                         musicFragment.num_order.setText((BaseApp.current_music_play_numSD+ 1) + "/" + BaseApp.mp3InfosSD.size());
-                        musicFragment.song_current_time.setText(MediaUtils.formatTime(0));
+                        musicFragment.song_current_time.setText(MediaUtils.formatTime(BaseApp.current_music_play_progressSD));
                         musicFragment.song_total_time.setText(MediaUtils.formatTime(mp3InfoSD.getDuration()));
-                        musicFragment.seekBar1.setProgress(0);
+                        musicFragment.seekBar1.setProgress(BaseApp.current_music_play_progressSD);
 
                         musicFragment.seekBar1.setMax((int) mp3InfoSD.getDuration());
                         if (mDeviceStateSD == Contents.SD_DEVICE_STATE_SCANNER_FINISHED && (playMusicService != null && (BaseApp.ispauseSD ==0 || BaseApp.ispauseSD ==2))) {
@@ -1235,9 +1295,9 @@ public class MainActivity extends Activity implements View.OnClickListener,
                         musicFragment.zhuanji_name.setText(mp3InfoSD.getAlbum());
                         musicFragment.chuangzhe_name.setText(mp3InfoSD.getArtist());
                         musicFragment.num_order.setText((BaseApp.current_music_play_numSD + 1) + "/" + BaseApp.mp3InfosSD.size());
-                        musicFragment.song_current_time.setText(MediaUtils.formatTime(0));
+                        musicFragment.song_current_time.setText(MediaUtils.formatTime(BaseApp.current_music_play_progressSD));
                         musicFragment.song_total_time.setText(MediaUtils.formatTime(mp3InfoSD.getDuration()));
-                        musicFragment.seekBar1.setProgress(0);
+                        musicFragment.seekBar1.setProgress(BaseApp.current_music_play_progressSD);
 
                         musicFragment.seekBar1.setMax((int) mp3InfoSD.getDuration());
                         if (mDeviceStateSD == Contents.SD_DEVICE_STATE_SCANNER_FINISHED && (playMusicService != null && (BaseApp.ispauseSD ==0 || BaseApp.ispauseSD ==2))) {
@@ -1275,7 +1335,7 @@ public class MainActivity extends Activity implements View.OnClickListener,
                 }
                 break;
             case 0:
-                BaseApp.current_music_play_progressSD = 0;
+            //    BaseApp.current_music_play_progressSD = 0;
                 //BaseApp.current_music_play_numSD >0加上这个判断条件，是防止在加载的过程中，没有找到对应的曲目的问题
                 if(BaseApp.mp3InfosSD!=null && BaseApp.mp3InfosSD.size() >0  && BaseApp.current_music_play_numSD >=0) {
                     if (BaseApp.current_music_play_numSD >= 0 && BaseApp.current_music_play_numSD < BaseApp.mp3InfosSD.size() ) {
@@ -1305,9 +1365,9 @@ public class MainActivity extends Activity implements View.OnClickListener,
 //                    }else{
 //                        musicFragment.num_order.setText(""+BaseApp.mp3InfosSD.size());
 //                    }
-                    musicFragment.song_current_time.setText(MediaUtils.formatTime(0));
+                    musicFragment.song_current_time.setText(MediaUtils.formatTime(BaseApp.current_music_play_progressSD));
                     musicFragment.song_total_time.setText(MediaUtils.formatTime(mp3InfoSD.getDuration()));
-                    musicFragment.seekBar1.setProgress(0);
+                    musicFragment.seekBar1.setProgress(BaseApp.current_music_play_progressSD);
                     musicFragment.seekBar1.setMax((int) mp3InfoSD.getDuration());
                     if(BaseApp.ispauseSD == 0 || BaseApp.ispauseSD == 2) {
                         button_bofang.setImageResource(R.mipmap.bofang);
@@ -1336,7 +1396,7 @@ public class MainActivity extends Activity implements View.OnClickListener,
                     BaseUtils.mlog(TAG, "-----BaseApp.ispauseSD-----" + BaseApp.ispauseUSB);
 //                    playMusicService.pause();
                 }
-                BaseApp.current_music_play_progressSD = 0;
+            //    BaseApp.current_music_play_progressSD = 0;
 
                 break;
         }
@@ -1477,6 +1537,7 @@ public class MainActivity extends Activity implements View.OnClickListener,
     @Override
     public void onPicLieBiaoClose() {
         leibieliebiao.setVisibility(View.GONE);
+        BaseApp.ifliebiaoOpen = 0;
     }
 
     @Override
@@ -1749,6 +1810,10 @@ public class MainActivity extends Activity implements View.OnClickListener,
         switch(v.getId()){
             case R.id.button_shangqu:
                 BaseUtils.mlog(TAG, "-------------button_shangqu-------------");
+                if(BaseApp.current_fragment == 1){
+                    videoFragment.fullScreen = 0;
+                }
+
                 BaseApp.ifliebiaoOpen = 0;
                 leibieliebiao.setVisibility(View.GONE);
                 if(BaseApp.playSourceManager == 0) {
@@ -1778,6 +1843,10 @@ public class MainActivity extends Activity implements View.OnClickListener,
 
             case R.id.button_bofang:
                 BaseUtils.mlog(TAG, "-------------button_bofang-------------");
+                if(BaseApp.current_fragment == 1){
+                    videoFragment.fullScreen = 0;
+                }
+
                 BaseApp.ifliebiaoOpen = 0;
                 leibieliebiao.setVisibility(View.GONE);
                 if(BaseApp.playSourceManager == 0) {
@@ -1944,6 +2013,9 @@ public class MainActivity extends Activity implements View.OnClickListener,
                 break;
             case R.id.button_xiaqu:
                 BaseUtils.mlog(TAG, "-------------button_xiaqu-------------");
+                if(BaseApp.current_fragment == 1){
+                    videoFragment.fullScreen = 0;
+                }
                 BaseApp.ifliebiaoOpen = 0;
                 leibieliebiao.setVisibility(View.GONE);
                 if(BaseApp.playSourceManager == 0){
@@ -1980,6 +2052,9 @@ public class MainActivity extends Activity implements View.OnClickListener,
                 break;
             case R.id.button_play_mode:
                 BaseUtils.mlog(TAG, "-------------button_play_mode-------------");
+                if(BaseApp.current_fragment == 1){
+                    videoFragment.fullScreen = 0;
+                }
                 BaseApp.ifliebiaoOpen = 0;
                 leibieliebiao.setVisibility(View.GONE);
                 if(BaseApp.playSourceManager == 0) {
@@ -2069,6 +2144,9 @@ public class MainActivity extends Activity implements View.OnClickListener,
                 break;
             case R.id.button_liebiao:
                 BaseUtils.mlog(TAG, "-------------button_liebiao-------------");
+                if(BaseApp.current_fragment == 1){
+                    videoFragment.fullScreen = 0;
+                }
                 if(BaseApp.ifliebiaoOpen == 0) {
                     BaseApp.ifliebiaoOpen =1;
                     leibieliebiao.setVisibility(View.VISIBLE);
@@ -2420,6 +2498,7 @@ public class MainActivity extends Activity implements View.OnClickListener,
                 break;
             case R.id.button_music:
                 BaseUtils.mlog(TAG, "-------------button_music-------------");
+                BaseApp.liebiaoOpenNum = 0;
                 BaseApp.current_media = 0;
                 button_music.setBackgroundResource(R.mipmap.liebiao_p);
                 button_video.setBackground(null);
@@ -2534,6 +2613,7 @@ public class MainActivity extends Activity implements View.OnClickListener,
                 break;
             case R.id.button_video:
                 BaseUtils.mlog(TAG, "-------------button_video-------------");
+                BaseApp.liebiaoOpenNum = 0;
                 BaseApp.current_media = 1;
                 button_video.setBackgroundResource(R.mipmap.liebiao_p);
                 button_music.setBackground(null);
@@ -2661,6 +2741,7 @@ public class MainActivity extends Activity implements View.OnClickListener,
                 }
                 break;
             case R.id.button_pic:
+                BaseApp.liebiaoOpenNum = 0;
                 BaseUtils.mlog(TAG, "-------------button_pic-------------");
                 BaseApp.current_media = 2;
                 button_pic.setBackgroundResource(R.mipmap.liebiao_p);
@@ -2807,254 +2888,268 @@ public class MainActivity extends Activity implements View.OnClickListener,
     //////////////////////////////////////////////
 
     class MyHandler extends Handler {
+        WeakReference<Activity > mActivityReference;
+        MyHandler(Activity activity) {
+            mActivityReference= new WeakReference<Activity>(activity);
+        }
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
-            switch(msg.what){
-                case Contents.MSG_CANCEL_COVER:
-                    media_fragment_image.setVisibility(View.GONE);
-                    break;
-                case Contents.DIRECT_CHANGE_PIC_TO_AUX: //图片把u盘回到aux的解决
-                    BaseUtils.mlog(TAG, "-------------DIRECT_CHANGE_PIC_TO_AUX-------------");
-                    changeUIToAUX();
-                break;
-                case Contents.PPT_COMEBAKC:  // 处理PPT进入的图片的切换
-                    BaseUtils.mlog(TAG, "-------------PPT_COMEBAKC-------------");
-                    if(BaseApp.playSourceManager == 0 ) {
-                        if(BaseApp.picInfos!=null && BaseApp.picInfos.size() > 0) {
-                            pictureFragment.imageView_PPT.setImageURI(Uri.parse(BaseApp.picInfos.get(BaseApp.current_pic_play_numUSB).getData()));
-                            if (BaseApp.current_pic_play_numUSB + 1 >= BaseApp.picInfos.size()) {
-                                BaseApp.current_pic_play_numUSB = BaseApp.picInfos.size() - 1;
-                                pic_timer.cancel();
-                                pic_timer = null;
-                            } else {
-                                BaseApp.current_pic_play_numUSB++;
+            final Activity activity = mActivityReference.get();
+            if (activity != null) {
+                switch (msg.what) {
+                    case Contents.MSG_DISMISS_LIEBIAO_AUTO:
+                        leibieliebiao.setVisibility(View.GONE);
+                        BaseApp.ifliebiaoOpen = 0;
+                        break;
+                    case Contents.MSG_CANCEL_COVER:
+                        media_fragment_image.setVisibility(View.GONE);
+                        break;
+                    case Contents.DIRECT_CHANGE_PIC_TO_AUX: //图片把u盘回到aux的解决
+                        BaseUtils.mlog(TAG, "-------------DIRECT_CHANGE_PIC_TO_AUX-------------");
+                        changeUIToAUX();
+                        break;
+                    case Contents.PPT_COMEBAKC:  // 处理PPT进入的图片的切换
+                        BaseUtils.mlog(TAG, "-------------PPT_COMEBAKC-------------");
+                        if (BaseApp.playSourceManager == 0) {
+                            if (BaseApp.picInfos != null && BaseApp.picInfos.size() > 0) {
+                                pictureFragment.imageView_PPT.setImageURI(Uri.parse(BaseApp.picInfos.get(BaseApp.current_pic_play_numUSB).getData()));
+                                if (BaseApp.current_pic_play_numUSB + 1 >= BaseApp.picInfos.size()) {
+                                    BaseApp.current_pic_play_numUSB = BaseApp.picInfos.size() - 1;
+                                    pic_timer.cancel();
+                                    pic_timer = null;
+                                } else {
+                                    BaseApp.current_pic_play_numUSB++;
+                                }
                             }
-                        }
-                        pictureFragment.picUIUpdateListener.onSavePicProgress();
-                    }else if(BaseApp.playSourceManager == 3){
-                        if(BaseApp.picInfosSD!=null && BaseApp.picInfosSD.size() > 0) {
-                            pictureFragment.imageView_PPT.setImageURI(Uri.parse(BaseApp.picInfosSD.get(BaseApp.current_pic_play_numSD).getData()));
-                            if (BaseApp.current_pic_play_numSD + 1 >= BaseApp.picInfosSD.size()) {
-                                BaseApp.current_pic_play_numSD = BaseApp.picInfosSD.size() - 1;
-                                pic_timer.cancel();
-                                pic_timer = null;
-                            } else {
-                                BaseApp.current_pic_play_numSD++;
+                            pictureFragment.picUIUpdateListener.onSavePicProgress();
+                        } else if (BaseApp.playSourceManager == 3) {
+                            if (BaseApp.picInfosSD != null && BaseApp.picInfosSD.size() > 0) {
+                                pictureFragment.imageView_PPT.setImageURI(Uri.parse(BaseApp.picInfosSD.get(BaseApp.current_pic_play_numSD).getData()));
+                                if (BaseApp.current_pic_play_numSD + 1 >= BaseApp.picInfosSD.size()) {
+                                    BaseApp.current_pic_play_numSD = BaseApp.picInfosSD.size() - 1;
+                                    pic_timer.cancel();
+                                    pic_timer = null;
+                                } else {
+                                    BaseApp.current_pic_play_numSD++;
+                                }
                             }
+                            pictureFragment.picUIUpdateListener.onSavePicProgress();
                         }
-                        pictureFragment.picUIUpdateListener.onSavePicProgress();
-                    }
-                    break;
-                case Contents.MSG_DEVICE_STATE_UI:
-                    BaseUtils.mlog(TAG, "-------------MSG_DEVICE_STATE_UI-------------");
-                    if(BaseApp.current_fragment == 0) {
-                        if (BaseApp.ifhaveUSBdevice) {
-                            musicFragment.button_usb.setImageResource(R.mipmap.usb_n);
-                        }else {
-                            musicFragment.button_usb.setImageResource(R.mipmap.usb_p);
+                        break;
+                    case Contents.MSG_DEVICE_STATE_UI:
+                        BaseUtils.mlog(TAG, "-------------MSG_DEVICE_STATE_UI-------------");
+                        if (BaseApp.current_fragment == 0) {
+                            if (BaseApp.ifhaveUSBdevice) {
+                                musicFragment.button_usb.setImageResource(R.mipmap.usb_n);
+                            } else {
+                                musicFragment.button_usb.setImageResource(R.mipmap.usb_p);
+                            }
+                            if (BaseApp.ifhavaSDdevice) {
+                                musicFragment.button_SDCard.setImageResource(R.mipmap.sd_ico_p);
+                            } else {
+                                musicFragment.button_SDCard.setImageResource(R.mipmap.sd_ico_n);
+                            }
+                            if (BaseApp.ifBluetoothConnected) {
+                                musicFragment.button_bluetooth.setImageResource(R.mipmap.bt_n);
+                            } else {
+                                musicFragment.button_bluetooth.setImageResource(R.mipmap.bt_p);
+                            }
+                            musicFragment.button_aux.setImageResource(R.mipmap.aux_n);
                         }
-                        if(BaseApp.ifhavaSDdevice){
-                            musicFragment.button_SDCard.setImageResource(R.mipmap.sd_ico_p);
-                        }else{
-                            musicFragment.button_SDCard.setImageResource(R.mipmap.sd_ico_n);
-                        }
-                        if(BaseApp.ifBluetoothConnected){
-                            musicFragment.button_bluetooth.setImageResource(R.mipmap.bt_n);
-                        }else{
-                            musicFragment.button_bluetooth.setImageResource(R.mipmap.bt_p);
-                        }
-                        musicFragment.button_aux.setImageResource(R.mipmap.aux_n);
-                    }
-                    break;
-                case Contents.MUSIC_PROGRESS:
+                        break;
+                    case Contents.MUSIC_PROGRESS:
 //                        BaseUtils.mlog(TAG, "-------------MUSIC_PROGRESS-------------");
-                    if(BaseApp.playSourceManager == 0 || BaseApp.playSourceManager == 3) {
-                        musicFragment.seekBar1.setProgress(msg.arg1);
-                        musicFragment.song_current_time.setText(MediaUtils.formatTime(msg.arg1));
-                    }
-                break;
-                case Contents.MUSIC_REFRESH_INFO_UI:
-                    BaseUtils.mlog(TAG, "-------------MUSIC_REFRESH_INFO_UI-------------");
-                    if(BaseApp.playSourceManager == 0) {
-                        Mp3Info mp3Info = new Mp3Info();
-                        mp3Info = BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB);
-                        Bitmap albumBitmap = MediaUtils.getArtwork(getApplicationContext(), mp3Info.getId(), mp3Info.getAlbumId(), true, false);
-                        musicFragment.seekBar1.setProgress(BaseApp.current_music_play_progressUSB);//已经有定时器去刷新了，这里就不需要了，否则会有跳动的感觉
-                        musicFragment.seekBar1.setMax((int) mp3Info.getDuration());
-                        musicFragment.album_icon.setImageBitmap(albumBitmap);
-                        musicFragment.song_name.setText(mp3Info.getTittle());
-                        musicFragment.zhuanji_name.setText(mp3Info.getAlbum());
-                        musicFragment.chuangzhe_name.setText(mp3Info.getArtist());
-                        musicFragment.button_play_mode_ico.setImageResource(music_play_mode_resource_ico[BaseApp.music_play_mode]);
-                        musicFragment.button_play_mode_name.setText(button_play_mode_name_ico[BaseApp.music_play_mode]);
-                        button_play_mode.setImageResource(music_play_mode_resource[BaseApp.music_play_mode]);
-                        if(mDeviceStateUSB == Contents.USB_DEVICE_STATE_SCANNER_FINISHED) {
-                            musicFragment.num_order.setText((BaseApp.current_music_play_numUSB + 1) + "/" + BaseApp.mp3Infos.size());
-                        }else{//没有加载完成，不用处理，等待异步加载去刷新
+                        if (BaseApp.playSourceManager == 0 || BaseApp.playSourceManager == 3) {
+                            musicFragment.seekBar1.setProgress(msg.arg1);
+                            musicFragment.song_current_time.setText(MediaUtils.formatTime(msg.arg1));
+                        }
+                        break;
+                    case Contents.MUSIC_REFRESH_INFO_UI:
+                        BaseUtils.mlog(TAG, "-------------MUSIC_REFRESH_INFO_UI-------------");
+                        if (BaseApp.playSourceManager == 0) {
+                            Mp3Info mp3Info = new Mp3Info();
+                            mp3Info = BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB);
+                            Bitmap albumBitmap = MediaUtils.getArtwork(getApplicationContext(), mp3Info.getId(), mp3Info.getAlbumId(), true, false);
+                            musicFragment.seekBar1.setProgress(BaseApp.current_music_play_progressUSB);//已经有定时器去刷新了，这里就不需要了，否则会有跳动的感觉
+                            musicFragment.seekBar1.setMax((int) mp3Info.getDuration());
+                            musicFragment.album_icon.setImageBitmap(albumBitmap);
+                            musicFragment.song_name.setText(mp3Info.getTittle());
+                            musicFragment.zhuanji_name.setText(mp3Info.getAlbum());
+                            musicFragment.chuangzhe_name.setText(mp3Info.getArtist());
+                            musicFragment.button_play_mode_ico.setImageResource(music_play_mode_resource_ico[BaseApp.music_play_mode]);
+                            musicFragment.button_play_mode_name.setText(button_play_mode_name_ico[BaseApp.music_play_mode]);
+                            button_play_mode.setImageResource(music_play_mode_resource[BaseApp.music_play_mode]);
+                            if (mDeviceStateUSB == Contents.USB_DEVICE_STATE_SCANNER_FINISHED) {
+                                musicFragment.num_order.setText((BaseApp.current_music_play_numUSB + 1) + "/" + BaseApp.mp3Infos.size());
+                            } else {//没有加载完成，不用处理，等待异步加载去刷新
 //                            musicFragment.num_order.setText(""+BaseApp.mp3Infos.size());
-                        }
-                        musicFragment.song_current_time.setText(MediaUtils.formatTime(BaseApp.current_music_play_progressUSB));
-                        musicFragment.song_total_time.setText(MediaUtils.formatTime(mp3Info.getDuration()));
+                            }
+                            musicFragment.song_current_time.setText(MediaUtils.formatTime(BaseApp.current_music_play_progressUSB));
+                            musicFragment.song_total_time.setText(MediaUtils.formatTime(mp3Info.getDuration()));
 
-                        if (playMusicService.isPlaying()) {
-                            button_bofang.setImageResource(R.mipmap.bofang);
-                        } else {
-                            button_bofang.setImageResource(R.mipmap.zanting);
-                        }
-                    }else if(BaseApp.playSourceManager == 3){
-                        Mp3Info mp3Info = new Mp3Info();
-                        mp3Info = BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD);
-                        Bitmap albumBitmap = MediaUtils.getArtwork(getApplicationContext(), mp3Info.getId(), mp3Info.getAlbumId(), true, false);
-                        musicFragment.seekBar1.setProgress(BaseApp.current_music_play_progressSD);//已经有定时器去刷新了，这里就不需要了，否则会有跳动的感觉
-                        musicFragment.seekBar1.setMax((int) mp3Info.getDuration());
-                        musicFragment.album_icon.setImageBitmap(albumBitmap);
-                        musicFragment.song_name.setText(mp3Info.getTittle());
-                        musicFragment.zhuanji_name.setText(mp3Info.getAlbum());
-                        musicFragment.chuangzhe_name.setText(mp3Info.getArtist());
-                        musicFragment.button_play_mode_ico.setImageResource(music_play_mode_resource_ico[BaseApp.music_play_mode]);
-                        musicFragment.button_play_mode_name.setText(button_play_mode_name_ico[BaseApp.music_play_mode]);
-                        button_play_mode.setImageResource(music_play_mode_resource[BaseApp.music_play_mode]);
-                        if(mDeviceStateSD == Contents.SD_DEVICE_STATE_SCANNER_FINISHED) {
-                            musicFragment.num_order.setText((BaseApp.current_music_play_numSD + 1) + "/" + BaseApp.mp3InfosSD.size());
-                        }else{
-//                            musicFragment.num_order.setText(""+BaseApp.mp3InfosSD.size());
-                        }
-                        musicFragment.song_current_time.setText(MediaUtils.formatTime(BaseApp.current_music_play_progressSD));
-                        musicFragment.song_total_time.setText(MediaUtils.formatTime(mp3Info.getDuration()));
-
-                        if (playMusicService.isPlaying()) {
-                            button_bofang.setImageResource(R.mipmap.bofang);
-                        } else {
-                            button_bofang.setImageResource(R.mipmap.zanting);
-                        }
-                    }
-                    break;
-                case Contents.MSG_LOCAL_FIRST_CHANGE_UI:
-                    BaseUtils.mlog(TAG, "-------------MSG_LOCAL_FIRST_CHANGE_UI-------------");
-                    if(BaseApp.playSourceManager == 0){
-                        musicFragment.button_usb.setBackgroundResource(R.mipmap.yinyuan_p);
-                    }else if(BaseApp.playSourceManager == 3){
-                        musicFragment.button_SDCard.setBackgroundResource(R.mipmap.yinyuan_p);
-                    }else if(BaseApp.playSourceManager == 1){
-                        musicFragment.button_bluetooth.setBackgroundResource(R.mipmap.yinyuan_p);
-                    }else{
-                        musicFragment.button_aux.setBackgroundResource(R.mipmap.yinyuan_p);
-                    }
-                    break;
-                case Contents.MSG_AUX_FIRST_CHANGE_UI:
-                    BaseUtils.mlog(TAG, "-------------MSG_AUX_FIRST_CHANGE_UI-------------");
-                    mSourceManager.requestSourceToVideo();
-                    musicFragment.button_aux.setBackgroundResource(R.mipmap.yinyuan_p);
-                    button_layout_dilan.setBackgroundResource(R.mipmap.aux_dilan);
-                    musicFragment.bt_device_name.setVisibility(View.VISIBLE);
-                    musicFragment.zhuanji_layout.setVisibility(View.INVISIBLE);
-                    musicFragment.singer_layout.setVisibility(View.INVISIBLE);
-                    musicFragment.order_layout.setVisibility(View.INVISIBLE);
-                    musicFragment.song_name.setVisibility(View.INVISIBLE);
-                    musicFragment.progress_really_layout.setVisibility(View.INVISIBLE);
-                    musicFragment.bt_device_name.setText("AUX");
-                    musicFragment.album_icon.setImageResource(R.mipmap.aux_ico);
-                    button_layout.setVisibility(View.GONE);
-                    button_layout_bluetooth.setVisibility(View.GONE);
-                    break;
-                case Contents.USB_MUSIC_INIT_CHANGE:
-                    BaseUtils.mlog(TAG, "-------------USB_MUSIC_INIT_CHANGE-------------");
-                    if(BaseApp.playSourceManager == 0) {
-                        BaseUtils.mlog(TAG, "-------------MUSIC_INIT_CHANGE-------------USB"+BaseApp.current_music_play_numUSB);
-                        Bitmap albumBitmap2 = MediaUtils.getArtwork(MainActivity.this, BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB).getId(), BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB).getAlbumId(), true, false);
-                        musicFragment.album_icon.setImageBitmap(albumBitmap2);
-                        musicFragment.song_name.setText(BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB).getTittle());
-                        musicFragment.zhuanji_name.setText(BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB).getAlbum());
-                        musicFragment.chuangzhe_name.setText(BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB).getArtist());//
-                        musicFragment.num_order.setText((BaseApp.current_music_play_numUSB + 1) + "/" + BaseApp.mp3Infos.size());
-                        musicFragment.song_current_time.setText(MediaUtils.formatTime(BaseApp.current_music_play_progressUSB));
-                        musicFragment.song_total_time.setText(MediaUtils.formatTime(BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB).getDuration()));
-                        musicFragment.button_play_mode_ico.setImageResource(music_play_mode_resource_ico[BaseApp.music_play_mode]);
-                        musicFragment.button_play_mode_name.setText(button_play_mode_name_ico[BaseApp.music_play_mode]);
-                        button_play_mode.setImageResource(music_play_mode_resource[BaseApp.music_play_mode]);
-                        musicFragment.seekBar1.setProgress(BaseApp.current_music_play_progressUSB);
-                        musicFragment.seekBar1.setMax((int) BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB).getDuration());
-
-                        myHandler.sendEmptyMessageDelayed(Contents.USB_MUSIC_INIT_CHANGE_TO_PLAY, 500);
-                    }
-                    break;
-
-                case Contents.USB_MUSIC_INIT_CHANGE_TO_PLAY://802
-                    BaseUtils.mlog(TAG, "-------------USB_MUSIC_INIT_CHANGE_TO_PLAY-------------");
-                    if (playMusicService != null) {
-                        BaseApp.ispauseUSB =0;
-                        playMusicService.playUSB(BaseApp.current_music_play_numUSB);
-                        button_bofang.setImageResource(R.mipmap.bofang);
-                    }
-                    break;
-                case Contents.SD_MUSIC_INIT_CHANGE:
-                    BaseUtils.mlog(TAG, "-------------SD_MUSIC_INIT_CHANGE-------------");
-                    if(BaseApp.playSourceManager == 3){  //第一次进入，如果是sd卡的东西，但是在usb的时候就收到了消息，就会导致mp3InfosSD没有数据了
-                        BaseUtils.mlog(TAG, "-------------MUSIC_INIT_CHANGE-------------SD");
-                        Bitmap albumBitmap2 = MediaUtils.getArtwork(MainActivity.this, BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD).getId(), BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD).getAlbumId(), true, false);
-                        musicFragment.album_icon.setImageBitmap(albumBitmap2);
-                        musicFragment.song_name.setText(BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD).getTittle());
-                        musicFragment.zhuanji_name.setText(BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD).getAlbum());
-                        musicFragment.chuangzhe_name.setText(BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD).getArtist());//
-                        musicFragment.num_order.setText((BaseApp.current_music_play_numSD + 1) + "/" + BaseApp.mp3InfosSD.size());
-                        musicFragment.song_current_time.setText(MediaUtils.formatTime(BaseApp.current_music_play_progressSD));
-                        musicFragment.song_total_time.setText(MediaUtils.formatTime(BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD).getDuration()));
-                        musicFragment.button_play_mode_ico.setImageResource(music_play_mode_resource_ico[BaseApp.music_play_mode]);
-                        musicFragment.button_play_mode_name.setText(button_play_mode_name_ico[BaseApp.music_play_mode]);
-                        button_play_mode.setImageResource(music_play_mode_resource[BaseApp.music_play_mode]);
-
-                        musicFragment.seekBar1.setProgress(BaseApp.current_music_play_progressSD);
-                        musicFragment.seekBar1.setMax((int) BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD).getDuration());
-
-                        myHandler.sendEmptyMessageDelayed(Contents.SD_MUSIC_INIT_CHANGE_TO_PLAY,500);
-
-                    }
-                    break;
-                case Contents.SD_MUSIC_INIT_CHANGE_TO_PLAY:
-                    BaseUtils.mlog(TAG, "-------------SD_MUSIC_INIT_CHANGE_TO_PLAY-------------");
-                    if (playMusicService != null ) {
-                        BaseApp.ispauseSD =0;
-                        playMusicService.playSD(BaseApp.current_music_play_numSD);
-                        button_bofang.setImageResource(R.mipmap.bofang);
-                    }
-                    break;
-                case Contents.USB_MUSIC_INIT_CHANGE_LIST:
-                    BaseUtils.mlog(TAG,"-------------USB_MUSIC_INIT_CHANGE_LIST----------------");
-                    if (BaseApp.playSourceManager == 0 && BaseApp.ifliebiaoOpen == 1 && BaseApp.current_media == 0) {
-                        if(BaseApp.mp3Infos ==null || BaseApp.mp3Infos.size()==0){
-                            loading_layout.setVisibility(View.VISIBLE);
-                            videolistview_id.setVisibility(View.GONE);
-                            musiclistview_id.setVisibility(View.GONE);
-                            gridview_id.setVisibility(View.GONE);
-                            loading_image.setBackgroundResource(R.mipmap.jinggao_ico);
-                            loading_text.setText(R.string.wuwenjian);
-                        }else{
-                            loading_layout.setVisibility(View.GONE);
-                            gridview_id.setVisibility(View.GONE);
-                            videolistview_id.setVisibility(View.GONE);
-                            musiclistview_id.setVisibility(View.VISIBLE);
-                            if (mymusiclistviewAdapter != null) {
-                                mymusiclistviewAdapter = new MymusiclistviewAdapter(MainActivity.this, BaseApp.mp3Infos);
-                                videolistview_id.setAdapter(mymusiclistviewAdapter);
+                            if (playMusicService.isPlaying()) {
+                                button_bofang.setImageResource(R.mipmap.bofang);
                             } else {
-                                mymusiclistviewAdapter = new MymusiclistviewAdapter(MainActivity.this, BaseApp.mp3Infos);
-                                videolistview_id.setAdapter(mymusiclistviewAdapter);
+                                button_bofang.setImageResource(R.mipmap.zanting);
+                            }
+                        } else if (BaseApp.playSourceManager == 3) {
+                            Mp3Info mp3Info = new Mp3Info();
+                            mp3Info = BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD);
+                            Bitmap albumBitmap = MediaUtils.getArtwork(getApplicationContext(), mp3Info.getId(), mp3Info.getAlbumId(), true, false);
+                            musicFragment.seekBar1.setProgress(BaseApp.current_music_play_progressSD);//已经有定时器去刷新了，这里就不需要了，否则会有跳动的感觉
+                            musicFragment.seekBar1.setMax((int) mp3Info.getDuration());
+                            musicFragment.album_icon.setImageBitmap(albumBitmap);
+                            musicFragment.song_name.setText(mp3Info.getTittle());
+                            musicFragment.zhuanji_name.setText(mp3Info.getAlbum());
+                            musicFragment.chuangzhe_name.setText(mp3Info.getArtist());
+                            musicFragment.button_play_mode_ico.setImageResource(music_play_mode_resource_ico[BaseApp.music_play_mode]);
+                            musicFragment.button_play_mode_name.setText(button_play_mode_name_ico[BaseApp.music_play_mode]);
+                            button_play_mode.setImageResource(music_play_mode_resource[BaseApp.music_play_mode]);
+                            if (mDeviceStateSD == Contents.SD_DEVICE_STATE_SCANNER_FINISHED) {
+                                musicFragment.num_order.setText((BaseApp.current_music_play_numSD + 1) + "/" + BaseApp.mp3InfosSD.size());
+                            } else {
+//                            musicFragment.num_order.setText(""+BaseApp.mp3InfosSD.size());
+                            }
+                            musicFragment.song_current_time.setText(MediaUtils.formatTime(BaseApp.current_music_play_progressSD));
+                            musicFragment.song_total_time.setText(MediaUtils.formatTime(mp3Info.getDuration()));
+
+                            if (playMusicService.isPlaying()) {
+                                button_bofang.setImageResource(R.mipmap.bofang);
+                            } else {
+                                button_bofang.setImageResource(R.mipmap.zanting);
                             }
                         }
-                    }
-                    break;
-                case Contents.USB_VIDEO_INIT_CHANGE:
-                    BaseUtils.mlog(TAG,"-------------USB_VIDEO_INIT_CHANGE----------------");
-                    if (BaseApp.playSourceManager == 0 && BaseApp.ifliebiaoOpen == 1 && BaseApp.current_media == 1) {
-                            if(BaseApp.mp4Infos ==null || BaseApp.mp4Infos.size()==0){
+                        break;
+                    case Contents.MSG_LOCAL_FIRST_CHANGE_UI:
+                        BaseUtils.mlog(TAG, "-------------MSG_LOCAL_FIRST_CHANGE_UI-------------");
+                        if (BaseApp.playSourceManager == 0) {
+                            musicFragment.button_usb.setBackgroundResource(R.mipmap.yinyuan_p);
+                            mSourceManager.requestSourceToVideoUSB();
+                        } else if (BaseApp.playSourceManager == 3) {
+                            musicFragment.button_SDCard.setBackgroundResource(R.mipmap.yinyuan_p);
+                            mSourceManager.requestSourceToVideoSD();
+                        } else if (BaseApp.playSourceManager == 1) {
+                            musicFragment.button_bluetooth.setBackgroundResource(R.mipmap.yinyuan_p);
+                            mSourceManager.requestSourceToVideoBT();
+                        } else {
+                            musicFragment.button_aux.setBackgroundResource(R.mipmap.yinyuan_p);
+                            mSourceManager.requestSourceToVideo();
+                        }
+                        break;
+                    case Contents.MSG_AUX_FIRST_CHANGE_UI:
+                        BaseUtils.mlog(TAG, "-------------MSG_AUX_FIRST_CHANGE_UI-------------");
+                        mSourceManager.requestSourceToVideo();
+                        musicFragment.button_aux.setBackgroundResource(R.mipmap.yinyuan_p);
+                        button_layout_dilan.setBackgroundResource(R.mipmap.aux_dilan);
+                        musicFragment.bt_device_name.setVisibility(View.VISIBLE);
+                        musicFragment.zhuanji_layout.setVisibility(View.INVISIBLE);
+                        musicFragment.singer_layout.setVisibility(View.INVISIBLE);
+                        musicFragment.order_layout.setVisibility(View.INVISIBLE);
+                        musicFragment.song_name.setVisibility(View.INVISIBLE);
+                        musicFragment.progress_really_layout.setVisibility(View.INVISIBLE);
+                        musicFragment.bt_device_name.setText("AUX");
+                        musicFragment.album_icon.setImageResource(R.mipmap.aux_ico);
+                        button_layout.setVisibility(View.GONE);
+                        button_layout_bluetooth.setVisibility(View.GONE);
+                        break;
+                    case Contents.USB_MUSIC_INIT_CHANGE:
+                        BaseUtils.mlog(TAG, "-------------USB_MUSIC_INIT_CHANGE-------------");
+                        if (BaseApp.playSourceManager == 0) {
+                            BaseUtils.mlog(TAG, "-------------MUSIC_INIT_CHANGE-------------USB" + BaseApp.current_music_play_numUSB);
+                            Bitmap albumBitmap2 = MediaUtils.getArtwork(MainActivity.this, BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB).getId(), BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB).getAlbumId(), true, false);
+                            musicFragment.album_icon.setImageBitmap(albumBitmap2);
+                            musicFragment.song_name.setText(BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB).getTittle());
+                            musicFragment.zhuanji_name.setText(BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB).getAlbum());
+                            musicFragment.chuangzhe_name.setText(BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB).getArtist());//
+                            musicFragment.num_order.setText((BaseApp.current_music_play_numUSB + 1) + "/" + BaseApp.mp3Infos.size());
+                            musicFragment.song_current_time.setText(MediaUtils.formatTime(BaseApp.current_music_play_progressUSB));
+                            musicFragment.song_total_time.setText(MediaUtils.formatTime(BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB).getDuration()));
+                            musicFragment.button_play_mode_ico.setImageResource(music_play_mode_resource_ico[BaseApp.music_play_mode]);
+                            musicFragment.button_play_mode_name.setText(button_play_mode_name_ico[BaseApp.music_play_mode]);
+                            button_play_mode.setImageResource(music_play_mode_resource[BaseApp.music_play_mode]);
+                            musicFragment.seekBar1.setProgress(BaseApp.current_music_play_progressUSB);
+                            musicFragment.seekBar1.setMax((int) BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB).getDuration());
+
+                            myHandler.sendEmptyMessageDelayed(Contents.USB_MUSIC_INIT_CHANGE_TO_PLAY, 500);
+                        }
+                        break;
+
+                    case Contents.USB_MUSIC_INIT_CHANGE_TO_PLAY://802
+                        BaseUtils.mlog(TAG, "-------------USB_MUSIC_INIT_CHANGE_TO_PLAY-------------");
+                        if (playMusicService != null) {
+                            BaseApp.ispauseUSB = 0;
+                            playMusicService.playUSB(BaseApp.current_music_play_numUSB);
+                            button_bofang.setImageResource(R.mipmap.bofang);
+                        }
+                        break;
+                    case Contents.SD_MUSIC_INIT_CHANGE:
+                        BaseUtils.mlog(TAG, "-------------SD_MUSIC_INIT_CHANGE-------------");
+                        if (BaseApp.playSourceManager == 3) {  //第一次进入，如果是sd卡的东西，但是在usb的时候就收到了消息，就会导致mp3InfosSD没有数据了
+                            BaseUtils.mlog(TAG, "-------------MUSIC_INIT_CHANGE-------------SD");
+                            Bitmap albumBitmap2 = MediaUtils.getArtwork(MainActivity.this, BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD).getId(), BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD).getAlbumId(), true, false);
+                            musicFragment.album_icon.setImageBitmap(albumBitmap2);
+                            musicFragment.song_name.setText(BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD).getTittle());
+                            musicFragment.zhuanji_name.setText(BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD).getAlbum());
+                            musicFragment.chuangzhe_name.setText(BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD).getArtist());//
+                            musicFragment.num_order.setText((BaseApp.current_music_play_numSD + 1) + "/" + BaseApp.mp3InfosSD.size());
+                            musicFragment.song_current_time.setText(MediaUtils.formatTime(BaseApp.current_music_play_progressSD));
+                            musicFragment.song_total_time.setText(MediaUtils.formatTime(BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD).getDuration()));
+                            musicFragment.button_play_mode_ico.setImageResource(music_play_mode_resource_ico[BaseApp.music_play_mode]);
+                            musicFragment.button_play_mode_name.setText(button_play_mode_name_ico[BaseApp.music_play_mode]);
+                            button_play_mode.setImageResource(music_play_mode_resource[BaseApp.music_play_mode]);
+
+                            musicFragment.seekBar1.setProgress(BaseApp.current_music_play_progressSD);
+                            musicFragment.seekBar1.setMax((int) BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD).getDuration());
+
+                            myHandler.sendEmptyMessageDelayed(Contents.SD_MUSIC_INIT_CHANGE_TO_PLAY, 500);
+
+                        }
+                        break;
+                    case Contents.SD_MUSIC_INIT_CHANGE_TO_PLAY:
+                        BaseUtils.mlog(TAG, "-------------SD_MUSIC_INIT_CHANGE_TO_PLAY-------------");
+                        if (playMusicService != null) {
+                            BaseApp.ispauseSD = 0;
+                            playMusicService.playSD(BaseApp.current_music_play_numSD);
+                            button_bofang.setImageResource(R.mipmap.bofang);
+                        }
+                        break;
+                    case Contents.USB_MUSIC_INIT_CHANGE_LIST:
+                        BaseUtils.mlog(TAG, "-------------USB_MUSIC_INIT_CHANGE_LIST----------------");
+                        if (BaseApp.playSourceManager == 0 && BaseApp.ifliebiaoOpen == 1 && BaseApp.current_media == 0) {
+                            if (BaseApp.mp3Infos == null || BaseApp.mp3Infos.size() == 0) {
                                 loading_layout.setVisibility(View.VISIBLE);
                                 videolistview_id.setVisibility(View.GONE);
                                 musiclistview_id.setVisibility(View.GONE);
                                 gridview_id.setVisibility(View.GONE);
                                 loading_image.setBackgroundResource(R.mipmap.jinggao_ico);
                                 loading_text.setText(R.string.wuwenjian);
-                            }else{
+                            } else {
+                                loading_layout.setVisibility(View.GONE);
+                                gridview_id.setVisibility(View.GONE);
+                                videolistview_id.setVisibility(View.GONE);
+                                musiclistview_id.setVisibility(View.VISIBLE);
+                                if (mymusiclistviewAdapter != null) {
+                                    mymusiclistviewAdapter = new MymusiclistviewAdapter(MainActivity.this, BaseApp.mp3Infos);
+                                    videolistview_id.setAdapter(mymusiclistviewAdapter);
+                                } else {
+                                    mymusiclistviewAdapter = new MymusiclistviewAdapter(MainActivity.this, BaseApp.mp3Infos);
+                                    videolistview_id.setAdapter(mymusiclistviewAdapter);
+                                }
+                            }
+                        }
+                        break;
+                    case Contents.USB_VIDEO_INIT_CHANGE:
+                        BaseUtils.mlog(TAG, "-------------USB_VIDEO_INIT_CHANGE----------------");
+                        if (BaseApp.playSourceManager == 0 && BaseApp.ifliebiaoOpen == 1 && BaseApp.current_media == 1) {
+                            if (BaseApp.mp4Infos == null || BaseApp.mp4Infos.size() == 0) {
+                                loading_layout.setVisibility(View.VISIBLE);
+                                videolistview_id.setVisibility(View.GONE);
+                                musiclistview_id.setVisibility(View.GONE);
+                                gridview_id.setVisibility(View.GONE);
+                                loading_image.setBackgroundResource(R.mipmap.jinggao_ico);
+                                loading_text.setText(R.string.wuwenjian);
+                            } else {
                                 loading_layout.setVisibility(View.GONE);
                                 gridview_id.setVisibility(View.GONE);
                                 musiclistview_id.setVisibility(View.GONE);
@@ -3067,70 +3162,70 @@ public class MainActivity extends Activity implements View.OnClickListener,
                                     videolistview_id.setAdapter(myvideolistviewAdapter);
                                 }
                             }
-                    }
-                    break;
-                case Contents.SD_MUSIC_INIT_CHANGE_LIST:
-                    BaseUtils.mlog(TAG,"-------------SD_MUSIC_INIT_CHANGE_LIST----------------");
-                    if (BaseApp.playSourceManager == 3 && BaseApp.ifliebiaoOpen == 1 && BaseApp.current_media == 0) {
-                        if(BaseApp.mp3InfosSD ==null || BaseApp.mp3InfosSD.size()==0){
-                            loading_layout.setVisibility(View.VISIBLE);
-                            videolistview_id.setVisibility(View.GONE);
-                            musiclistview_id.setVisibility(View.GONE);
-                            gridview_id.setVisibility(View.GONE);
-                            loading_image.setBackgroundResource(R.mipmap.jinggao_ico);
-                            loading_text.setText(R.string.wuwenjian);
-                        }else{
-                            loading_layout.setVisibility(View.GONE);
-                            gridview_id.setVisibility(View.GONE);
-                            videolistview_id.setVisibility(View.GONE);
-                            musiclistview_id.setVisibility(View.VISIBLE);
-                            if (mymusiclistviewAdapter != null) {
-                                mymusiclistviewAdapter = new MymusiclistviewAdapter(MainActivity.this, BaseApp.mp3InfosSD);
-                                videolistview_id.setAdapter(mymusiclistviewAdapter);
+                        }
+                        break;
+                    case Contents.SD_MUSIC_INIT_CHANGE_LIST:
+                        BaseUtils.mlog(TAG, "-------------SD_MUSIC_INIT_CHANGE_LIST----------------");
+                        if (BaseApp.playSourceManager == 3 && BaseApp.ifliebiaoOpen == 1 && BaseApp.current_media == 0) {
+                            if (BaseApp.mp3InfosSD == null || BaseApp.mp3InfosSD.size() == 0) {
+                                loading_layout.setVisibility(View.VISIBLE);
+                                videolistview_id.setVisibility(View.GONE);
+                                musiclistview_id.setVisibility(View.GONE);
+                                gridview_id.setVisibility(View.GONE);
+                                loading_image.setBackgroundResource(R.mipmap.jinggao_ico);
+                                loading_text.setText(R.string.wuwenjian);
                             } else {
-                                mymusiclistviewAdapter = new MymusiclistviewAdapter(MainActivity.this, BaseApp.mp3InfosSD);
-                                videolistview_id.setAdapter(mymusiclistviewAdapter);
+                                loading_layout.setVisibility(View.GONE);
+                                gridview_id.setVisibility(View.GONE);
+                                videolistview_id.setVisibility(View.GONE);
+                                musiclistview_id.setVisibility(View.VISIBLE);
+                                if (mymusiclistviewAdapter != null) {
+                                    mymusiclistviewAdapter = new MymusiclistviewAdapter(MainActivity.this, BaseApp.mp3InfosSD);
+                                    videolistview_id.setAdapter(mymusiclistviewAdapter);
+                                } else {
+                                    mymusiclistviewAdapter = new MymusiclistviewAdapter(MainActivity.this, BaseApp.mp3InfosSD);
+                                    videolistview_id.setAdapter(mymusiclistviewAdapter);
+                                }
                             }
                         }
-                    }
-                    break;
-                case Contents.SD_VIDEO_INIT_CHANGE:
-                    BaseUtils.mlog(TAG,"-------------SD_VIDEO_INIT_CHANGE----------------");
-                    if (BaseApp.playSourceManager == 3 && BaseApp.ifliebiaoOpen == 1 && BaseApp.current_media == 1) {
-                        if(BaseApp.mp4InfosSD ==null || BaseApp.mp4InfosSD.size()==0){
-                            loading_layout.setVisibility(View.VISIBLE);
-                            videolistview_id.setVisibility(View.GONE);
-                            musiclistview_id.setVisibility(View.GONE);
-                            gridview_id.setVisibility(View.GONE);
-                            loading_image.setBackgroundResource(R.mipmap.jinggao_ico);
-                            loading_text.setText(R.string.wuwenjian);
-                        }else{
-                            loading_layout.setVisibility(View.GONE);
-                            gridview_id.setVisibility(View.GONE);
-                            musiclistview_id.setVisibility(View.GONE);
-                            videolistview_id.setVisibility(View.VISIBLE);
-                            if (myvideolistviewAdapter != null) {
-                                myvideolistviewAdapter = new MyvideolistviewAdapter(MainActivity.this, BaseApp.mp4InfosSD);
-                                videolistview_id.setAdapter(myvideolistviewAdapter);
+                        break;
+                    case Contents.SD_VIDEO_INIT_CHANGE:
+                        BaseUtils.mlog(TAG, "-------------SD_VIDEO_INIT_CHANGE----------------");
+                        if (BaseApp.playSourceManager == 3 && BaseApp.ifliebiaoOpen == 1 && BaseApp.current_media == 1) {
+                            if (BaseApp.mp4InfosSD == null || BaseApp.mp4InfosSD.size() == 0) {
+                                loading_layout.setVisibility(View.VISIBLE);
+                                videolistview_id.setVisibility(View.GONE);
+                                musiclistview_id.setVisibility(View.GONE);
+                                gridview_id.setVisibility(View.GONE);
+                                loading_image.setBackgroundResource(R.mipmap.jinggao_ico);
+                                loading_text.setText(R.string.wuwenjian);
                             } else {
-                                myvideolistviewAdapter = new MyvideolistviewAdapter(MainActivity.this, BaseApp.mp4InfosSD);
-                                videolistview_id.setAdapter(myvideolistviewAdapter);
+                                loading_layout.setVisibility(View.GONE);
+                                gridview_id.setVisibility(View.GONE);
+                                musiclistview_id.setVisibility(View.GONE);
+                                videolistview_id.setVisibility(View.VISIBLE);
+                                if (myvideolistviewAdapter != null) {
+                                    myvideolistviewAdapter = new MyvideolistviewAdapter(MainActivity.this, BaseApp.mp4InfosSD);
+                                    videolistview_id.setAdapter(myvideolistviewAdapter);
+                                } else {
+                                    myvideolistviewAdapter = new MyvideolistviewAdapter(MainActivity.this, BaseApp.mp4InfosSD);
+                                    videolistview_id.setAdapter(myvideolistviewAdapter);
+                                }
                             }
                         }
-                    }
-                    break;
-                case Contents.USB_PIC_INIT_CHANGE:
-                    BaseUtils.mlog(TAG,"-------------USB_PIC_INIT_CHANGE----------------");
-                    if (BaseApp.playSourceManager == 0 && BaseApp.ifliebiaoOpen == 1 && BaseApp.current_media == 2) {
+                        break;
+                    case Contents.USB_PIC_INIT_CHANGE:
+                        BaseUtils.mlog(TAG, "-------------USB_PIC_INIT_CHANGE----------------");
+                        if (BaseApp.playSourceManager == 0 && BaseApp.ifliebiaoOpen == 1 && BaseApp.current_media == 2) {
 
-                            if(BaseApp.picInfos == null || BaseApp.picInfos.size() == 0){
+                            if (BaseApp.picInfos == null || BaseApp.picInfos.size() == 0) {
                                 loading_layout.setVisibility(View.VISIBLE);
                                 musiclistview_id.setVisibility(View.GONE);
                                 videolistview_id.setVisibility(View.GONE);
                                 gridview_id.setVisibility(View.GONE);
                                 loading_image.setBackgroundResource(R.mipmap.jinggao_ico);
                                 loading_text.setText(R.string.wuwenjian);
-                            }else{
+                            } else {
                                 loading_layout.setVisibility(View.GONE);
                                 musiclistview_id.setVisibility(View.GONE);
                                 videolistview_id.setVisibility(View.GONE);
@@ -3143,138 +3238,138 @@ public class MainActivity extends Activity implements View.OnClickListener,
                                     gridview_id.setAdapter(myGridViewAdapter2);
                                 }
                             }
-                    }
-                    break;
-                case Contents.SD_PIC_INIT_CHANGE:
-                    BaseUtils.mlog(TAG,"-------------SD_PIC_INIT_CHANGE----------------");
-                    if(BaseApp.playSourceManager == 3 && BaseApp.ifliebiaoOpen == 1 && BaseApp.current_media == 2){
-                        if(BaseApp.picInfosSD == null || BaseApp.picInfosSD.size() == 0){
-                            loading_layout.setVisibility(View.VISIBLE);
-                            musiclistview_id.setVisibility(View.GONE);
-                            videolistview_id.setVisibility(View.GONE);
-                            gridview_id.setVisibility(View.GONE);
-                            loading_image.setBackgroundResource(R.mipmap.jinggao_ico);
-                            loading_text.setText(R.string.wuwenjian);
-                        }else{
-                            loading_layout.setVisibility(View.GONE);
-                            musiclistview_id.setVisibility(View.GONE);
-                            videolistview_id.setVisibility(View.GONE);
-                            gridview_id.setVisibility(View.VISIBLE);
-                            if (myGridViewAdapter2 != null) {
-                                myGridViewAdapter2 = new MyGridViewAdapter2(MainActivity.this, BaseApp.picInfosSD);
-                                gridview_id.setAdapter(myGridViewAdapter2);
+                        }
+                        break;
+                    case Contents.SD_PIC_INIT_CHANGE:
+                        BaseUtils.mlog(TAG, "-------------SD_PIC_INIT_CHANGE----------------");
+                        if (BaseApp.playSourceManager == 3 && BaseApp.ifliebiaoOpen == 1 && BaseApp.current_media == 2) {
+                            if (BaseApp.picInfosSD == null || BaseApp.picInfosSD.size() == 0) {
+                                loading_layout.setVisibility(View.VISIBLE);
+                                musiclistview_id.setVisibility(View.GONE);
+                                videolistview_id.setVisibility(View.GONE);
+                                gridview_id.setVisibility(View.GONE);
+                                loading_image.setBackgroundResource(R.mipmap.jinggao_ico);
+                                loading_text.setText(R.string.wuwenjian);
                             } else {
-                                myGridViewAdapter2 = new MyGridViewAdapter2(MainActivity.this, BaseApp.picInfosSD);
-                                gridview_id.setAdapter(myGridViewAdapter2);
+                                loading_layout.setVisibility(View.GONE);
+                                musiclistview_id.setVisibility(View.GONE);
+                                videolistview_id.setVisibility(View.GONE);
+                                gridview_id.setVisibility(View.VISIBLE);
+                                if (myGridViewAdapter2 != null) {
+                                    myGridViewAdapter2 = new MyGridViewAdapter2(MainActivity.this, BaseApp.picInfosSD);
+                                    gridview_id.setAdapter(myGridViewAdapter2);
+                                } else {
+                                    myGridViewAdapter2 = new MyGridViewAdapter2(MainActivity.this, BaseApp.picInfosSD);
+                                    gridview_id.setAdapter(myGridViewAdapter2);
+                                }
                             }
                         }
-                    }
-                    break;
-                case Contents.IMAGE_ITEM_CLICK:
-                    BaseUtils.mlog(TAG,"-------------IMAGE_ITEM_CLICK----------------");
-                    if(BaseApp.playSourceManager == 0){
-                        //显示页面进行控制
+                        break;
+                    case Contents.IMAGE_ITEM_CLICK:
+                        BaseUtils.mlog(TAG, "-------------IMAGE_ITEM_CLICK----------------");
+                        if (BaseApp.playSourceManager == 0) {
+                            //显示页面进行控制
 
-                        if (BaseApp.current_fragment == 0) {  //若果不切掉，会带来两个问题，1、从音乐到图片，再到音乐，点击之后会重新不放，需要的是继续播放
-                            BaseApp.ispauseUSB = 2;
-                            playMusicService.pause();                                  //     2、从音乐到图片到音乐，音频关不掉
-                        }
-                        if (BaseApp.current_fragment != 2) {
-                            BaseUtils.mlog(TAG, "-MyHandler-"+"create new picture fragment...");
-                            media_fragment_image.setVisibility(View.VISIBLE);  //activity被设置成了透明了，在fragment切换的时候，fragment会被镂空，出现闪屏现象
-                            pictureFragment = (PictureFragment) fragments.get(2);
-                            FragmentManager fm = getFragmentManager();
-                            FragmentTransaction ft = fm.beginTransaction();
-                            fragments.get(BaseApp.current_fragment).onStop();//停止当前的fragment
-
-                            if (pictureFragment.isAdded())   //判断PICfragment是否在栈中
-                                pictureFragment.onStart();
-                            else {
-                                ft.add(R.id.media_fragment, pictureFragment);
-                                ft.commit();
+                            if (BaseApp.current_fragment == 0) {  //若果不切掉，会带来两个问题，1、从音乐到图片，再到音乐，点击之后会重新不放，需要的是继续播放
+                                BaseApp.ispauseUSB = 2;
+                                playMusicService.pause();                                  //     2、从音乐到图片到音乐，音频关不掉
                             }
-                            ft.hide(fragments.get(BaseApp.current_fragment));   //隐藏
-                            ft.remove(fragments.get(BaseApp.current_fragment));
-                            ft.show(pictureFragment);
-                            BaseApp.current_fragment = 2;
-                            BaseUtils.mlog(TAG, "-MyHandler-"+"current picture num " + BaseApp.current_pic_play_numUSB);
-                            pictureFragment.setImageShow(BaseApp.current_pic_play_numUSB);
-                        } else {
-                            BaseUtils.mlog(TAG, "current picture num " + BaseApp.current_pic_play_numUSB);
-                            pictureFragment.changeImageShow(BaseApp.current_pic_play_numUSB);
-                        }
-                    }else if(BaseApp.playSourceManager == 3){
-                        if (BaseApp.current_fragment == 0) {  //若果不切掉，会带来两个问题，1、从音乐到图片，再到音乐，点击之后会重新不放，需要的是继续播放
-                            BaseApp.ispauseSD = 2;
-                            playMusicService.pause();                                  //     2、从音乐到图片到音乐，音频关不掉
-                        }
-                        if (BaseApp.current_fragment != 2) {
-                            BaseUtils.mlog(TAG, "-MyHandler-"+"create new picture fragment...");
-                            media_fragment_image.setVisibility(View.VISIBLE);  //activity被设置成了透明了，在fragment切换的时候，fragment会被镂空，出现闪屏现象
-                            pictureFragment = (PictureFragment) fragments.get(2);
-                            FragmentManager fm = getFragmentManager();
-                            FragmentTransaction ft = fm.beginTransaction();
-                            fragments.get(BaseApp.current_fragment).onStop();//停止当前的fragment
+                            if (BaseApp.current_fragment != 2) {
+                                BaseUtils.mlog(TAG, "-MyHandler-" + "create new picture fragment...");
+                                media_fragment_image.setVisibility(View.VISIBLE);  //activity被设置成了透明了，在fragment切换的时候，fragment会被镂空，出现闪屏现象
+                                pictureFragment = (PictureFragment) fragments.get(2);
+                                FragmentManager fm = getFragmentManager();
+                                FragmentTransaction ft = fm.beginTransaction();
+                                fragments.get(BaseApp.current_fragment).onStop();//停止当前的fragment
 
-                            if (pictureFragment.isAdded())   //判断PICfragment是否在栈中
-                                pictureFragment.onStart();
-                            else {
-                                ft.add(R.id.media_fragment, pictureFragment);
-                                ft.commit();
+                                if (pictureFragment.isAdded())   //判断PICfragment是否在栈中
+                                    pictureFragment.onStart();
+                                else {
+                                    ft.add(R.id.media_fragment, pictureFragment);
+                                    ft.commit();
+                                }
+                                ft.hide(fragments.get(BaseApp.current_fragment));   //隐藏
+                                ft.remove(fragments.get(BaseApp.current_fragment));
+                                ft.show(pictureFragment);
+                                BaseApp.current_fragment = 2;
+                                BaseUtils.mlog(TAG, "-MyHandler-" + "current picture num " + BaseApp.current_pic_play_numUSB);
+                                pictureFragment.setImageShow(BaseApp.current_pic_play_numUSB);
+                            } else {
+                                BaseUtils.mlog(TAG, "current picture num " + BaseApp.current_pic_play_numUSB);
+                                pictureFragment.changeImageShow(BaseApp.current_pic_play_numUSB);
                             }
-                            ft.hide(fragments.get(BaseApp.current_fragment));   //隐藏
-                            ft.remove(fragments.get(BaseApp.current_fragment));
-                            ft.show(pictureFragment);
-                            BaseApp.current_fragment = 2;
-                            BaseUtils.mlog(TAG, "-MyHandler-"+"current picture num " + BaseApp.current_pic_play_numSD);
-                            pictureFragment.setImageShow(BaseApp.current_pic_play_numSD);
-                        } else {
-                            BaseUtils.mlog(TAG, "current picture num " + BaseApp.current_pic_play_numSD);
-                            pictureFragment.changeImageShow(BaseApp.current_pic_play_numSD);
-                        }
-                    }
-                    break;
-                case Contents.USB_MSG_STATE_MOUNTED:
-                    BaseUtils.mlog(TAG,"-------------USB_MSG_STATE_MOUNTED----------------");
-                    if(BaseApp.current_fragment == 0){
-                        musicFragment.button_usb.setImageResource(R.mipmap.usb_n);
+                        } else if (BaseApp.playSourceManager == 3) {
+                            if (BaseApp.current_fragment == 0) {  //若果不切掉，会带来两个问题，1、从音乐到图片，再到音乐，点击之后会重新不放，需要的是继续播放
+                                BaseApp.ispauseSD = 2;
+                                playMusicService.pause();                                  //     2、从音乐到图片到音乐，音频关不掉
+                            }
+                            if (BaseApp.current_fragment != 2) {
+                                BaseUtils.mlog(TAG, "-MyHandler-" + "create new picture fragment...");
+                                media_fragment_image.setVisibility(View.VISIBLE);  //activity被设置成了透明了，在fragment切换的时候，fragment会被镂空，出现闪屏现象
+                                pictureFragment = (PictureFragment) fragments.get(2);
+                                FragmentManager fm = getFragmentManager();
+                                FragmentTransaction ft = fm.beginTransaction();
+                                fragments.get(BaseApp.current_fragment).onStop();//停止当前的fragment
 
-                        if(BaseApp.playSourceManager != 0){  //当前不是播放的usb的音乐，弹窗提示是否切换到usb
-                            BaseApp.detect_device_num = 0;
+                                if (pictureFragment.isAdded())   //判断PICfragment是否在栈中
+                                    pictureFragment.onStart();
+                                else {
+                                    ft.add(R.id.media_fragment, pictureFragment);
+                                    ft.commit();
+                                }
+                                ft.hide(fragments.get(BaseApp.current_fragment));   //隐藏
+                                ft.remove(fragments.get(BaseApp.current_fragment));
+                                ft.show(pictureFragment);
+                                BaseApp.current_fragment = 2;
+                                BaseUtils.mlog(TAG, "-MyHandler-" + "current picture num " + BaseApp.current_pic_play_numSD);
+                                pictureFragment.setImageShow(BaseApp.current_pic_play_numSD);
+                            } else {
+                                BaseUtils.mlog(TAG, "current picture num " + BaseApp.current_pic_play_numSD);
+                                pictureFragment.changeImageShow(BaseApp.current_pic_play_numSD);
+                            }
+                        }
+                        break;
+                    case Contents.USB_MSG_STATE_MOUNTED:
+                        BaseUtils.mlog(TAG, "-------------USB_MSG_STATE_MOUNTED----------------");
+                        if (BaseApp.current_fragment == 0) {
+                            musicFragment.button_usb.setImageResource(R.mipmap.usb_n);
+
+                            if (BaseApp.playSourceManager != 0) {  //当前不是播放的usb的音乐，弹窗提示是否切换到usb
+                                BaseApp.detect_device_num = 0;
                                 dialog(getString(R.string.dialog_str_usb));
                             }
-                    }
-                    break;
-                case Contents.USB_MSG_STATE_UNMOUNTED:
-                    BaseUtils.mlog(TAG,"USB_MSG_STATE_UNMOUNTED----");
-                    //需要考虑跳转问题  暂时不做处理
-                    //需要将这些数组赋值为空
-                    BaseApp.mp3Infos = null;
-                    BaseApp.mp4Infos = null;
-                    BaseApp.picInfos = null;
-                    BaseApp.current_music_play_numUSB = -1;
-                    BaseApp.current_video_play_numUSB = -1;
-                    BaseApp.current_pic_play_numUSB = -1;
-                    last_usb_total_num = 0;
-                    last_usb_video_total_num = 0;
-                    last_usb_pic_total_num = 0;
-                    BaseApp.ispauseUSB =2;
-                    if(BaseApp.ifliebiaoOpen == 1){
-                        leibieliebiao.setVisibility(View.GONE);
-                        BaseApp.ifliebiaoOpen = 0;
-                    }
+                        }
+                        break;
+                    case Contents.USB_MSG_STATE_UNMOUNTED:
+                        BaseUtils.mlog(TAG, "USB_MSG_STATE_UNMOUNTED----");
+                        //需要考虑跳转问题  暂时不做处理
+                        //需要将这些数组赋值为空
+                        BaseApp.mp3Infos = null;
+                        BaseApp.mp4Infos = null;
+                        BaseApp.picInfos = null;
+                        BaseApp.current_music_play_numUSB = -1;
+                        BaseApp.current_video_play_numUSB = -1;
+                        BaseApp.current_pic_play_numUSB = -1;
+                        last_usb_total_num = 0;
+                        last_usb_video_total_num = 0;
+                        last_usb_pic_total_num = 0;
+                        BaseApp.ispauseUSB = 2;
+                        if (BaseApp.ifliebiaoOpen == 1) {
+                            leibieliebiao.setVisibility(View.GONE);
+                            BaseApp.ifliebiaoOpen = 0;
+                        }
 
 
-                    BaseUtils.mlog(TAG,"USB_MSG_STATE_UNMOUNTED----1");
-                    if (BaseApp.playSourceManager == 0) { //正在播放usb的多媒体
-                        BaseUtils.mlog(TAG,"USB_MSG_STATE_UNMOUNTED----2");
+                        BaseUtils.mlog(TAG, "USB_MSG_STATE_UNMOUNTED----1");
+                        if (BaseApp.playSourceManager == 0) { //正在播放usb的多媒体
+                            BaseUtils.mlog(TAG, "USB_MSG_STATE_UNMOUNTED----2");
 //                        if (isTopActivity()) {
-                            BaseUtils.mlog(TAG,"USB_MSG_STATE_UNMOUNTED----3");
+                            BaseUtils.mlog(TAG, "USB_MSG_STATE_UNMOUNTED----3");
 
-                            if(BaseApp.current_fragment == 2){
-                                if(pic_timer!=null){
+                            if (BaseApp.current_fragment == 2) {
+                                if (pic_timer != null) {
                                     pic_timer.cancel();
-                                    pic_timer =null;
+                                    pic_timer = null;
                                 }
                                 button_layout.setBackgroundResource(R.mipmap.dilan);
                                 button_fangda.setVisibility(View.GONE);
@@ -3284,7 +3379,7 @@ public class MainActivity extends Activity implements View.OnClickListener,
                                 button_bofang.setImageResource(R.mipmap.bofang);
                                 button_xiaqu.setImageResource(R.mipmap.xiaqu);
                                 button_liebiao.setImageResource(R.mipmap.liebiao);
-                                if(BaseApp.ifinPPT ){
+                                if (BaseApp.ifinPPT) {
                                     BaseApp.ifinPPT = false;
                                     getWindow().addFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
                                     mRLayout.setSystemUiVisibility(View.VISIBLE);
@@ -3297,17 +3392,17 @@ public class MainActivity extends Activity implements View.OnClickListener,
                                     Rect frame = new Rect();
                                     getWindow().getDecorView().getWindowVisibleDisplayFrame(frame);
                                     int statusBarHeight = frame.top;
-                                    BaseUtils.mlog(TAG, "-onVideoScreenChange-"+"状态栏的高度2:----" + statusBarHeight);
+                                    BaseUtils.mlog(TAG, "-onVideoScreenChange-" + "状态栏的高度2:----" + statusBarHeight);
                                     //系统默认去掉了标题栏，只是保留了状态栏，状态栏的高度是63dp，但是返回后获取的高度为0
-                                    if(statusBarHeight == 0) {
-                                        RelativeLayout.LayoutParams mFramlayout = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,RelativeLayout.LayoutParams.MATCH_PARENT);
-                                        mFramlayout.setMargins(0,BaseApp.statebarheight,0,BaseApp.dibuheight);
+                                    if (statusBarHeight == 0) {
+                                        RelativeLayout.LayoutParams mFramlayout = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT);
+                                        mFramlayout.setMargins(0, BaseApp.statebarheight, 0, BaseApp.dibuheight);
                                         frame_content.setLayoutParams(mFramlayout);
                                     }
                                 }
                             }
 
-                            if(BaseApp.current_fragment == 1 && BaseApp.ifFullScreenState){
+                            if (BaseApp.current_fragment == 1 && BaseApp.ifFullScreenState) {
                                 BaseApp.ifFullScreenState = false;
                                 getWindow().addFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
                                 mRLayout.setSystemUiVisibility(View.VISIBLE);
@@ -3320,18 +3415,18 @@ public class MainActivity extends Activity implements View.OnClickListener,
                                 Rect frame = new Rect();
                                 getWindow().getDecorView().getWindowVisibleDisplayFrame(frame);
                                 int statusBarHeight = frame.top;
-                                BaseUtils.mlog(TAG, "-onVideoScreenChange-"+"状态栏的高度2:----" + statusBarHeight);
+                                BaseUtils.mlog(TAG, "-onVideoScreenChange-" + "状态栏的高度2:----" + statusBarHeight);
                                 //系统默认去掉了标题栏，只是保留了状态栏，状态栏的高度是63dp，但是返回后获取的高度为0
-                                if(statusBarHeight == 0) {
-                                    RelativeLayout.LayoutParams mFramlayout = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,RelativeLayout.LayoutParams.MATCH_PARENT);
-                                    mFramlayout.setMargins(0,BaseApp.statebarheight,0,BaseApp.dibuheight);
+                                if (statusBarHeight == 0) {
+                                    RelativeLayout.LayoutParams mFramlayout = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT);
+                                    mFramlayout.setMargins(0, BaseApp.statebarheight, 0, BaseApp.dibuheight);
                                     frame_content.setLayoutParams(mFramlayout);
                                 }
                             }
 
                             if (BaseApp.current_fragment != 0) { //当前不在音乐播放的界面
                                 media_fragment_image.setVisibility(View.VISIBLE);  //activity被设置成了透明了，在fragment切换的时候，fragment会被镂空，出现闪屏现象
-                                BaseUtils.mlog(TAG,"USB_MSG_STATE_UNMOUNTED----4---current_fragment"+BaseApp.current_fragment);
+                                BaseUtils.mlog(TAG, "USB_MSG_STATE_UNMOUNTED----4---current_fragment" + BaseApp.current_fragment);
                                 musicFragment = (MusicFragment) fragments.get(0);
                                 FragmentManager fm = getFragmentManager();
                                 FragmentTransaction ft = fm.beginTransaction();
@@ -3347,8 +3442,8 @@ public class MainActivity extends Activity implements View.OnClickListener,
                                 ft.remove(fragments.get(BaseApp.current_fragment));
                                 ft.show(musicFragment);
                                 BaseApp.current_fragment = 0;
-                            }else{//正在播放usb音乐
-                                if(playMusicService!=null){
+                            } else {//正在播放usb音乐
+                                if (playMusicService != null) {
                                     playMusicService.resetMusic();
                                 }
                             }
@@ -3430,97 +3525,97 @@ public class MainActivity extends Activity implements View.OnClickListener,
                                     musicFragment.button_SDCard.setBackgroundResource(R.mipmap.touming_b);
                                     BaseUtils.mlog(TAG, "last is aux.....");
                                     myHandler.sendEmptyMessage(Contents.DIRECT_CHANGE_PIC_TO_AUX);
-                               //     changeUIToAUX();
+                                    //     changeUIToAUX();
 //                                    musicFragment.musicUIUpdateListener.onAUXEent();
                                     break;
                             }
 //                        } else {//当前的界面被覆盖了，这个时候被拔掉
 //
 //                        }
-                    } else {//当前播放的不是usb多媒体文件
-                        if (BaseApp.current_fragment == 0) {
-                            musicFragment.button_usb.setImageResource(R.mipmap.usb_p);
-                        }
-                    }
-
-                    break;
-                case Contents.USB_MSG_STATE_SCANNER_STARTED:
-                    BaseUtils.mlog(TAG,"-------------USB_MSG_STATE_SCANNER_STARTED----------------");
-                    //扫描开始，读取之前存储的音乐信息
-                    SharedPreferences sharedPreferences = getSharedPreferences("DongfengDataSave", Activity.MODE_PRIVATE);
-                    last_path_usb = sharedPreferences.getString("LASTPATHUSB", "0");
-                    BaseApp.music_play_mode = sharedPreferences.getInt("MUSICPLAYMODE", 0);
-
-                    //开启定时器
-                    BaseApp.usb_scan_source = true;
-                    scan_timerUSB = new Timer();
-                    scan_timerUSB.schedule(new TimerTask() {
-                        @Override
-                        public void run() {
-                            if(mDeviceStateUSB == Contents.USB_DEVICE_STATE_SCANNER_STARTED) {
-                                BaseUtils.mlog(TAG, "BaseApp.timer_numm-------------");
-                                new MyAsyncTaskUSB2().execute();
+                        } else {//当前播放的不是usb多媒体文件
+                            if (BaseApp.current_fragment == 0) {
+                                musicFragment.button_usb.setImageResource(R.mipmap.usb_p);
                             }
                         }
-                    },0,2000);  //2s中执行一次查询
-                    break;
-                case Contents.USB_MSG_STATE_SCANNER_FINISHED:
-                    BaseUtils.mlog(TAG,"-------------USB_MSG_STATE_SCANNER_FINISHED----------------");
-                    if(scan_timerUSB!=null){
-                        //scan_timer
-                        BaseUtils.mlog(TAG, "-------------清空scan_timer-------------");
-                        scan_timerUSB.cancel();
-                        scan_timerUSB = null;
-                    }
-                    BaseUtils.mlog(TAG, "-------------最后一次查询了-------------");
-                    new MyAsyncTaskUSB2().execute();
-                    break;
-                case Contents.SD_MSG_STATE_MOUNTED:
-                    BaseUtils.mlog(TAG,"-------------SD_MSG_STATE_MOUNTED----------------");
-                    if(BaseApp.current_fragment == 0){
-                        musicFragment.button_SDCard.setImageResource(R.mipmap.sd_ico_p);
-                        if(BaseApp.playSourceManager != 3){
-                            //当前不是播放的usb的音乐，弹窗提示是否切换到usb
-                            BaseApp.detect_device_num = 3;
-                            dialog(getString(R.string.dialog_str_sd));
 
-                        }
-                    }
-                    break;
-                case Contents.SD_MSG_STATE_UNMOUNTED:
-                    BaseUtils.mlog(TAG,"-------------SD_MSG_STATE_UNMOUNTED----------------");
-                    //需要考虑跳转问题  暂时不做处理
-                    BaseUtils.mlog(TAG,"USB_MSG_STATE_UNMOUNTED----");
-                    BaseApp.mp3InfosSD = null;
-                    BaseApp.mp4InfosSD = null;
-                    BaseApp.picInfosSD = null;
-                    BaseApp.current_music_play_numSD = -1;
-                    BaseApp.current_video_play_numSD = -1;
-                    BaseApp.current_pic_play_numSD = -1;
-                    last_sd_total_num = 0;
-                    last_sd_video_total_num = 0;
-                    last_sd_pic_total_num = 0;
-                    BaseApp.ispauseSD =2;
-                    if(BaseApp.ifliebiaoOpen == 1){
-                        leibieliebiao.setVisibility(View.GONE);
-                        BaseApp.ifliebiaoOpen = 0;
-                    }
-                    button_layout.setBackgroundResource(R.mipmap.dilan);
-                    button_fangda.setVisibility(View.GONE);
-                    button_suoxiao.setVisibility(View.GONE);
-                    button_play_mode.setVisibility(View.VISIBLE);
-                    button_shangqu.setImageResource(R.mipmap.shangqu);
-                    button_bofang.setImageResource(R.mipmap.bofang);
-                    button_xiaqu.setImageResource(R.mipmap.xiaqu);
-                    button_liebiao.setImageResource(R.mipmap.liebiao);
-                    if (BaseApp.playSourceManager == 3) { //正在播放sd的多媒体
-//                        if (isTopActivity()) {
-                            if(BaseApp.current_fragment == 2){
-                                if(pic_timer!=null){
-                                    pic_timer.cancel();
-                                    pic_timer =null;
+                        break;
+                    case Contents.USB_MSG_STATE_SCANNER_STARTED:
+                        BaseUtils.mlog(TAG, "-------------USB_MSG_STATE_SCANNER_STARTED----------------");
+                        //扫描开始，读取之前存储的音乐信息
+                        SharedPreferences sharedPreferences = getSharedPreferences("DongfengDataSave", Activity.MODE_PRIVATE);
+                        last_path_usb = sharedPreferences.getString("LASTPATHUSB", "0");
+                        BaseApp.music_play_mode = sharedPreferences.getInt("MUSICPLAYMODE", 0);
+
+                        //开启定时器
+                        BaseApp.usb_scan_source = true;
+                        scan_timerUSB = new Timer();
+                        scan_timerUSB.schedule(new TimerTask() {
+                            @Override
+                            public void run() {
+                                if (mDeviceStateUSB == Contents.USB_DEVICE_STATE_SCANNER_STARTED) {
+                                    BaseUtils.mlog(TAG, "BaseApp.timer_numm-------------");
+                                    new MyAsyncTaskUSB2().execute();
                                 }
-                                if(BaseApp.ifinPPT){
+                            }
+                        }, 0, 2000);  //2s中执行一次查询
+                        break;
+                    case Contents.USB_MSG_STATE_SCANNER_FINISHED:
+                        BaseUtils.mlog(TAG, "-------------USB_MSG_STATE_SCANNER_FINISHED----------------");
+                        if (scan_timerUSB != null) {
+                            //scan_timer
+                            BaseUtils.mlog(TAG, "-------------清空scan_timer-------------");
+                            scan_timerUSB.cancel();
+                            scan_timerUSB = null;
+                        }
+                        BaseUtils.mlog(TAG, "-------------最后一次查询了-------------");
+                        new MyAsyncTaskUSB2().execute();
+                        break;
+                    case Contents.SD_MSG_STATE_MOUNTED:
+                        BaseUtils.mlog(TAG, "-------------SD_MSG_STATE_MOUNTED----------------");
+                        if (BaseApp.current_fragment == 0) {
+                            musicFragment.button_SDCard.setImageResource(R.mipmap.sd_ico_p);
+                            if (BaseApp.playSourceManager != 3) {
+                                //当前不是播放的usb的音乐，弹窗提示是否切换到usb
+                                BaseApp.detect_device_num = 3;
+                                dialog(getString(R.string.dialog_str_sd));
+
+                            }
+                        }
+                        break;
+                    case Contents.SD_MSG_STATE_UNMOUNTED:
+                        BaseUtils.mlog(TAG, "-------------SD_MSG_STATE_UNMOUNTED----------------");
+                        //需要考虑跳转问题  暂时不做处理
+                        BaseUtils.mlog(TAG, "USB_MSG_STATE_UNMOUNTED----");
+                        BaseApp.mp3InfosSD = null;
+                        BaseApp.mp4InfosSD = null;
+                        BaseApp.picInfosSD = null;
+                        BaseApp.current_music_play_numSD = -1;
+                        BaseApp.current_video_play_numSD = -1;
+                        BaseApp.current_pic_play_numSD = -1;
+                        last_sd_total_num = 0;
+                        last_sd_video_total_num = 0;
+                        last_sd_pic_total_num = 0;
+                        BaseApp.ispauseSD = 2;
+                        if (BaseApp.ifliebiaoOpen == 1) {
+                            leibieliebiao.setVisibility(View.GONE);
+                            BaseApp.ifliebiaoOpen = 0;
+                        }
+                        button_layout.setBackgroundResource(R.mipmap.dilan);
+                        button_fangda.setVisibility(View.GONE);
+                        button_suoxiao.setVisibility(View.GONE);
+                        button_play_mode.setVisibility(View.VISIBLE);
+                        button_shangqu.setImageResource(R.mipmap.shangqu);
+                        button_bofang.setImageResource(R.mipmap.bofang);
+                        button_xiaqu.setImageResource(R.mipmap.xiaqu);
+                        button_liebiao.setImageResource(R.mipmap.liebiao);
+                        if (BaseApp.playSourceManager == 3) { //正在播放sd的多媒体
+//                        if (isTopActivity()) {
+                            if (BaseApp.current_fragment == 2) {
+                                if (pic_timer != null) {
+                                    pic_timer.cancel();
+                                    pic_timer = null;
+                                }
+                                if (BaseApp.ifinPPT) {
                                     BaseApp.ifinPPT = false;
                                     getWindow().addFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
                                     mRLayout.setSystemUiVisibility(View.VISIBLE);
@@ -3533,16 +3628,16 @@ public class MainActivity extends Activity implements View.OnClickListener,
                                     Rect frame = new Rect();
                                     getWindow().getDecorView().getWindowVisibleDisplayFrame(frame);
                                     int statusBarHeight = frame.top;
-                                    BaseUtils.mlog(TAG, "-onVideoScreenChange-"+"状态栏的高度2:----" + statusBarHeight);
+                                    BaseUtils.mlog(TAG, "-onVideoScreenChange-" + "状态栏的高度2:----" + statusBarHeight);
                                     //系统默认去掉了标题栏，只是保留了状态栏，状态栏的高度是63dp，但是返回后获取的高度为0
-                                    if(statusBarHeight == 0) {
-                                        RelativeLayout.LayoutParams mFramlayout = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,RelativeLayout.LayoutParams.MATCH_PARENT);
-                                        mFramlayout.setMargins(0,BaseApp.statebarheight,0,BaseApp.dibuheight);
+                                    if (statusBarHeight == 0) {
+                                        RelativeLayout.LayoutParams mFramlayout = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT);
+                                        mFramlayout.setMargins(0, BaseApp.statebarheight, 0, BaseApp.dibuheight);
                                         frame_content.setLayoutParams(mFramlayout);
                                     }
                                 }
                             }
-                            if(BaseApp.current_fragment == 1 && BaseApp.ifFullScreenState){
+                            if (BaseApp.current_fragment == 1 && BaseApp.ifFullScreenState) {
                                 BaseApp.ifFullScreenState = false;
                                 getWindow().addFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
                                 mRLayout.setSystemUiVisibility(View.VISIBLE);
@@ -3555,10 +3650,10 @@ public class MainActivity extends Activity implements View.OnClickListener,
                                 Rect frame = new Rect();
                                 getWindow().getDecorView().getWindowVisibleDisplayFrame(frame);
                                 int statusBarHeight = frame.top;
-                                BaseUtils.mlog(TAG, "-onVideoScreenChange-"+"状态栏的高度2:----" + statusBarHeight);
+                                BaseUtils.mlog(TAG, "-onVideoScreenChange-" + "状态栏的高度2:----" + statusBarHeight);
                                 //系统默认去掉了标题栏，只是保留了状态栏，状态栏的高度是63dp，但是返回后获取的高度为0
-                                if(statusBarHeight == 0) {
-                                    RelativeLayout.LayoutParams mFramlayout = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,RelativeLayout.LayoutParams.MATCH_PARENT);
+                                if (statusBarHeight == 0) {
+                                    RelativeLayout.LayoutParams mFramlayout = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT);
                                     mFramlayout.setMargins(0, BaseApp.statebarheight, 0, BaseApp.dibuheight);
                                     frame_content.setLayoutParams(mFramlayout);
                                 }
@@ -3580,8 +3675,8 @@ public class MainActivity extends Activity implements View.OnClickListener,
                                 ft.remove(fragments.get(BaseApp.current_fragment));
                                 ft.show(musicFragment);
                                 BaseApp.current_fragment = 0;
-                            }else{//正在播放usb音乐
-                                if(playMusicService!=null){//防止突然中断导致音乐服务崩溃，出现audioflinger蹦了，在播放蓝牙的时候，会突然停一下
+                            } else {//正在播放usb音乐
+                                if (playMusicService != null) {//防止突然中断导致音乐服务崩溃，出现audioflinger蹦了，在播放蓝牙的时候，会突然停一下
                                     playMusicService.resetMusic();
                                 }
                             }
@@ -3666,155 +3761,155 @@ public class MainActivity extends Activity implements View.OnClickListener,
 //                        } else {//当前的界面被覆盖了，这个时候被拔掉
 //
 //                        }
-                    } else {//当前播放的不是sd多媒体文件
-                        if (BaseApp.current_fragment == 0) {
-                            musicFragment.button_SDCard.setImageResource(R.mipmap.sd_ico_n);
-                        }
-                    }
-
-                    break;
-                case Contents.SD_MSG_STATE_SCANNER_STARTED:
-                    BaseUtils.mlog(TAG,"-------------SD_MSG_STATE_SCANNER_STARTED----------------");
-                    //开启定时器
-                    SharedPreferences sharedPreferencesSD = getSharedPreferences("DongfengDataSave", Activity.MODE_PRIVATE);
-                    last_path_sd = sharedPreferencesSD.getString("LASTPATHSD", "0");
-                    BaseApp.music_play_mode = sharedPreferencesSD.getInt("MUSICPLAYMODE", 0);
-
-                    BaseApp.sd_scan_source = true;
-                    scan_timerSD = new Timer();
-                    scan_timerSD.schedule(new TimerTask() {
-                        @Override
-                        public void run() {
-                            if(mDeviceStateSD == Contents.SD_DEVICE_STATE_SCANNER_STARTED) {
-                                BaseUtils.mlog(TAG, "BaseApp.timer_numm-------------");
-                                new MyAsyncTaskSD2().execute();
+                        } else {//当前播放的不是sd多媒体文件
+                            if (BaseApp.current_fragment == 0) {
+                                musicFragment.button_SDCard.setImageResource(R.mipmap.sd_ico_n);
                             }
                         }
-                    },0,2000);  //2s中执行一次查询
-                    break;
-                case Contents.SD_MSG_STATE_SCANNER_FINISHED:
-                    BaseUtils.mlog(TAG,"-------------SD_MSG_STATE_SCANNER_FINISHED----------------");
-                    if(scan_timerSD!=null){
-                        //scan_timer
-                        BaseUtils.mlog(TAG, "-------------清空scan_timer-------------");
-                        scan_timerSD.cancel();
-                        scan_timerSD = null;
-                    }
-                    BaseUtils.mlog(TAG, "-------------最后一次查询了-------------");
-                    new MyAsyncTaskSD2().execute();
-                    break;
 
-                case Contents.MUSIC_REFRESH_TOTAL_NUM:  //没有点击事件的时候刷新总数目
-                    BaseUtils.mlog(TAG,"-------------MUSIC_REFRESH_TOTAL_NUM----------------");
-                    if(BaseApp.playSourceManager == 0 && BaseApp.usb_scan_source){
-                        BaseUtils.mlog(TAG, "-------------MUSIC_REFRESH_TOTAL_NUM-------------USB");
-                        if (BaseApp.mp3Infos != null && BaseApp.mp3Infos.size() >= 0) {
-                            if(BaseApp.current_music_play_numUSB < 0) {
-                                musicFragment.num_order.setText(""+BaseApp.mp3Infos.size());
-                            }else{
-                                musicFragment.num_order.setText((BaseApp.current_music_play_numUSB+1)+"/" + BaseApp.mp3Infos.size());
+                        break;
+                    case Contents.SD_MSG_STATE_SCANNER_STARTED:
+                        BaseUtils.mlog(TAG, "-------------SD_MSG_STATE_SCANNER_STARTED----------------");
+                        //开启定时器
+                        SharedPreferences sharedPreferencesSD = getSharedPreferences("DongfengDataSave", Activity.MODE_PRIVATE);
+                        last_path_sd = sharedPreferencesSD.getString("LASTPATHSD", "0");
+                        BaseApp.music_play_mode = sharedPreferencesSD.getInt("MUSICPLAYMODE", 0);
+
+                        BaseApp.sd_scan_source = true;
+                        scan_timerSD = new Timer();
+                        scan_timerSD.schedule(new TimerTask() {
+                            @Override
+                            public void run() {
+                                if (mDeviceStateSD == Contents.SD_DEVICE_STATE_SCANNER_STARTED) {
+                                    BaseUtils.mlog(TAG, "BaseApp.timer_numm-------------");
+                                    new MyAsyncTaskSD2().execute();
+                                }
+                            }
+                        }, 0, 2000);  //2s中执行一次查询
+                        break;
+                    case Contents.SD_MSG_STATE_SCANNER_FINISHED:
+                        BaseUtils.mlog(TAG, "-------------SD_MSG_STATE_SCANNER_FINISHED----------------");
+                        if (scan_timerSD != null) {
+                            //scan_timer
+                            BaseUtils.mlog(TAG, "-------------清空scan_timer-------------");
+                            scan_timerSD.cancel();
+                            scan_timerSD = null;
+                        }
+                        BaseUtils.mlog(TAG, "-------------最后一次查询了-------------");
+                        new MyAsyncTaskSD2().execute();
+                        break;
+
+                    case Contents.MUSIC_REFRESH_TOTAL_NUM:  //没有点击事件的时候刷新总数目
+                        BaseUtils.mlog(TAG, "-------------MUSIC_REFRESH_TOTAL_NUM----------------");
+                        if (BaseApp.playSourceManager == 0 && BaseApp.usb_scan_source) {
+                            BaseUtils.mlog(TAG, "-------------MUSIC_REFRESH_TOTAL_NUM-------------USB");
+                            if (BaseApp.mp3Infos != null && BaseApp.mp3Infos.size() >= 0) {
+                                if (BaseApp.current_music_play_numUSB < 0) {
+                                    musicFragment.num_order.setText("" + BaseApp.mp3Infos.size());
+                                } else {
+                                    musicFragment.num_order.setText((BaseApp.current_music_play_numUSB + 1) + "/" + BaseApp.mp3Infos.size());
+                                }
+                            }
+                        } else if (BaseApp.playSourceManager == 3 && BaseApp.sd_scan_source) {
+                            BaseUtils.mlog(TAG, "-------------MUSIC_REFRESH_TOTAL_NUM-------------SD");
+                            if (BaseApp.mp3InfosSD != null && BaseApp.mp3InfosSD.size() >= 0) {
+                                if (BaseApp.current_music_play_numSD < 0) {
+                                    musicFragment.num_order.setText("" + BaseApp.mp3InfosSD.size());
+                                } else {
+                                    musicFragment.num_order.setText((BaseApp.current_music_play_numSD + 1) + "/" + BaseApp.mp3InfosSD.size());
+                                }
                             }
                         }
-                    }else if(BaseApp.playSourceManager == 3 && BaseApp.sd_scan_source ){
-                        BaseUtils.mlog(TAG, "-------------MUSIC_REFRESH_TOTAL_NUM-------------SD");
-                        if (BaseApp.mp3InfosSD != null && BaseApp.mp3InfosSD.size() >= 0) {
-                            if(BaseApp.current_music_play_numSD <0) {
-                                musicFragment.num_order.setText("" +BaseApp.mp3InfosSD.size());
-                            }else{
-                                musicFragment.num_order.setText((BaseApp.current_music_play_numSD+1)+"/" + BaseApp.mp3InfosSD.size());
-                            }
-                        }
-                    }
-                    break;
-                case Contents.USB_MUSIC_LOAD_CHANGE:  //内容和init_change消息一样
-                    BaseUtils.mlog(TAG,"-------------USB_MUSIC_LOAD_CHANGE----------------");
-                    if(BaseApp.playSourceManager == 0) {
-                        BaseUtils.mlog(TAG, "-------------MUSIC_load_CHANGE-------------USB");
-                        Bitmap albumBitmap2 = MediaUtils.getArtwork(MainActivity.this, BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB).getId(), BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB).getAlbumId(), true, false);
-                        musicFragment.album_icon.setImageBitmap(albumBitmap2);
-                        musicFragment.song_name.setText(BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB).getTittle());
-                        musicFragment.zhuanji_name.setText(BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB).getAlbum());
-                        musicFragment.chuangzhe_name.setText(BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB).getArtist());//
+                        break;
+                    case Contents.USB_MUSIC_LOAD_CHANGE:  //内容和init_change消息一样
+                        BaseUtils.mlog(TAG, "-------------USB_MUSIC_LOAD_CHANGE----------------");
+                        if (BaseApp.playSourceManager == 0) {
+                            BaseUtils.mlog(TAG, "-------------MUSIC_load_CHANGE-------------USB");
+                            Bitmap albumBitmap2 = MediaUtils.getArtwork(MainActivity.this, BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB).getId(), BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB).getAlbumId(), true, false);
+                            musicFragment.album_icon.setImageBitmap(albumBitmap2);
+                            musicFragment.song_name.setText(BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB).getTittle());
+                            musicFragment.zhuanji_name.setText(BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB).getAlbum());
+                            musicFragment.chuangzhe_name.setText(BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB).getArtist());//
 //                        musicFragment.num_order.setText((BaseApp.current_music_play_numUSB + 1) + "/" + BaseApp.mp3Infos.size());
-                        musicFragment.song_current_time.setText(MediaUtils.formatTime(0));
-                        musicFragment.song_total_time.setText(MediaUtils.formatTime(BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB).getDuration()));
-                        musicFragment.seekBar1.setProgress(0);
-                        musicFragment.seekBar1.setMax((int) BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB).getDuration());
+                            musicFragment.song_current_time.setText(MediaUtils.formatTime(0));
+                            musicFragment.song_total_time.setText(MediaUtils.formatTime(BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB).getDuration()));
+                            musicFragment.seekBar1.setProgress(0);
+                            musicFragment.seekBar1.setMax((int) BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB).getDuration());
 
-                        if (playMusicService != null && (BaseApp.ispauseUSB ==0 || BaseApp.ispauseUSB ==2)) {
-                            BaseApp.ispauseUSB =0;
-                            playMusicService.playUSB(BaseApp.current_music_play_numUSB);
-                            button_bofang.setImageResource(R.mipmap.bofang);
+                            if (playMusicService != null && (BaseApp.ispauseUSB == 0 || BaseApp.ispauseUSB == 2)) {
+                                BaseApp.ispauseUSB = 0;
+                                playMusicService.playUSB(BaseApp.current_music_play_numUSB);
+                                button_bofang.setImageResource(R.mipmap.bofang);
+                            }
                         }
-                    }
-                    break;
-                case Contents.SD_MUSIC_LOAD_CHANGE:
-                    BaseUtils.mlog(TAG,"-------------SD_MUSIC_LOAD_CHANGE----------------");
-                    if(BaseApp.playSourceManager == 3){
-                        BaseUtils.mlog(TAG, "-------------MUSIC_INIT_CHANGE-------------SD");
-                        Bitmap albumBitmap2 = MediaUtils.getArtwork(MainActivity.this, BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD).getId(), BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD).getAlbumId(), true, false);
-                        musicFragment.album_icon.setImageBitmap(albumBitmap2);
-                        musicFragment.song_name.setText(BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD).getTittle());
-                        musicFragment.zhuanji_name.setText(BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD).getAlbum());
-                        musicFragment.chuangzhe_name.setText(BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD).getArtist());//
+                        break;
+                    case Contents.SD_MUSIC_LOAD_CHANGE:
+                        BaseUtils.mlog(TAG, "-------------SD_MUSIC_LOAD_CHANGE----------------");
+                        if (BaseApp.playSourceManager == 3) {
+                            BaseUtils.mlog(TAG, "-------------MUSIC_INIT_CHANGE-------------SD");
+                            Bitmap albumBitmap2 = MediaUtils.getArtwork(MainActivity.this, BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD).getId(), BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD).getAlbumId(), true, false);
+                            musicFragment.album_icon.setImageBitmap(albumBitmap2);
+                            musicFragment.song_name.setText(BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD).getTittle());
+                            musicFragment.zhuanji_name.setText(BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD).getAlbum());
+                            musicFragment.chuangzhe_name.setText(BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD).getArtist());//
 //                        musicFragment.num_order.setText((BaseApp.current_music_play_numSD + 1) + "/" + BaseApp.mp3InfosSD.size());
-                        musicFragment.song_current_time.setText(MediaUtils.formatTime(0));
-                        musicFragment.song_total_time.setText(MediaUtils.formatTime(BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD).getDuration()));
-                        musicFragment.seekBar1.setProgress(0);
-                        musicFragment.seekBar1.setMax((int) BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD).getDuration());
+                            musicFragment.song_current_time.setText(MediaUtils.formatTime(0));
+                            musicFragment.song_total_time.setText(MediaUtils.formatTime(BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD).getDuration()));
+                            musicFragment.seekBar1.setProgress(0);
+                            musicFragment.seekBar1.setMax((int) BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD).getDuration());
 
-                        if (playMusicService != null && (BaseApp.ispauseSD ==0 || BaseApp.ispauseSD ==2)) {
-                            BaseApp.ispauseSD =0;
-                            playMusicService.playSD(BaseApp.current_music_play_numSD);
-                            button_bofang.setImageResource(R.mipmap.bofang);
+                            if (playMusicService != null && (BaseApp.ispauseSD == 0 || BaseApp.ispauseSD == 2)) {
+                                BaseApp.ispauseSD = 0;
+                                playMusicService.playSD(BaseApp.current_music_play_numSD);
+                                button_bofang.setImageResource(R.mipmap.bofang);
+                            }
                         }
-                    }
-                    break;
-                case Contents.USB_MUSIC_LOAD_REFRESH_LIST:
-                    BaseUtils.mlog(TAG,"-------------USB_MUSIC_LOAD_REFRESH_LIST----------------");
-                    if (BaseApp.playSourceManager == 0 && BaseApp.ifliebiaoOpen == 1 && BaseApp.current_media == 0){
-                        BaseUtils.mlog(TAG, "-MyHandler-" + "mp3Infos is OK,come to update the list...");
-                        if (mDeviceStateUSB == Contents.USB_DEVICE_STATE_MOUNTED ||
-                                (mDeviceStateUSB == Contents.USB_DEVICE_STATE_SCANNER_STARTED && (BaseApp.mp3Infos == null || BaseApp.mp3Infos.size() == 0))) {
-                            if (BaseApp.music_media_state_scan == 0) {  //保持住当前的刷新动态图
+                        break;
+                    case Contents.USB_MUSIC_LOAD_REFRESH_LIST:
+                        BaseUtils.mlog(TAG, "-------------USB_MUSIC_LOAD_REFRESH_LIST----------------");
+                        if (BaseApp.playSourceManager == 0 && BaseApp.ifliebiaoOpen == 1 && BaseApp.current_media == 0) {
+                            BaseUtils.mlog(TAG, "-MyHandler-" + "mp3Infos is OK,come to update the list...");
+                            if (mDeviceStateUSB == Contents.USB_DEVICE_STATE_MOUNTED ||
+                                    (mDeviceStateUSB == Contents.USB_DEVICE_STATE_SCANNER_STARTED && (BaseApp.mp3Infos == null || BaseApp.mp3Infos.size() == 0))) {
+                                if (BaseApp.music_media_state_scan == 0) {  //保持住当前的刷新动态图
+                                    loading_layout.setVisibility(View.VISIBLE);
+                                    musiclistview_id.setVisibility(View.GONE);
+                                    videolistview_id.setVisibility(View.GONE);
+                                    gridview_id.setVisibility(View.GONE);
+                                    BaseApp.music_media_state_scan = 1;
+                                    loading_image.setBackgroundResource(0);
+                                    loading_image.setBackgroundResource(R.drawable.loading_ico);
+                                    frameAnim = (AnimationDrawable) loading_image.getBackground();
+                                    frameAnim.start();
+                                    loading_text.setText(R.string.jiazaizhong);
+                                }
+                            } else if (mDeviceStateUSB == Contents.USB_STATE_SCANNER_FINISHED && (BaseApp.mp3Infos == null || BaseApp.mp3Infos.size() == 0)) {
+                                BaseApp.music_media_state_scan = 0;
                                 loading_layout.setVisibility(View.VISIBLE);
                                 musiclistview_id.setVisibility(View.GONE);
                                 videolistview_id.setVisibility(View.GONE);
                                 gridview_id.setVisibility(View.GONE);
-                                BaseApp.music_media_state_scan = 1;
-                                loading_image.setBackgroundResource(0);
-                                loading_image.setBackgroundResource(R.drawable.loading_ico);
-                                frameAnim = (AnimationDrawable) loading_image.getBackground();
-                                frameAnim.start();
-                                loading_text.setText(R.string.jiazaizhong);
-                            }
-                        }else if(mDeviceStateUSB == Contents.USB_STATE_SCANNER_FINISHED && (BaseApp.mp3Infos == null || BaseApp.mp3Infos.size() == 0)){
-                            BaseApp.music_media_state_scan = 0;
-                            loading_layout.setVisibility(View.VISIBLE);
-                            musiclistview_id.setVisibility(View.GONE);
-                            videolistview_id.setVisibility(View.GONE);
-                            gridview_id.setVisibility(View.GONE);
-                            loading_image.setBackgroundResource(R.mipmap.jinggao_ico);
-                            loading_text.setText(R.string.wuwenjian);
-                        }else{
-                            videolistview_id.setVisibility(View.GONE);
-                            loading_layout.setVisibility(View.GONE);
-                            gridview_id.setVisibility(View.GONE);
-                            musiclistview_id.setVisibility(View.VISIBLE);
-                            BaseApp.music_media_state_scan = 0;
-                            if (mymusiclistviewAdapter != null) {
-                                mymusiclistviewAdapter = new MymusiclistviewAdapter(MainActivity.this, BaseApp.mp3Infos);
-                                musiclistview_id.setAdapter(mymusiclistviewAdapter);
+                                loading_image.setBackgroundResource(R.mipmap.jinggao_ico);
+                                loading_text.setText(R.string.wuwenjian);
                             } else {
-                                mymusiclistviewAdapter = new MymusiclistviewAdapter(MainActivity.this, BaseApp.mp3Infos);
-                                musiclistview_id.setAdapter(mymusiclistviewAdapter);
+                                videolistview_id.setVisibility(View.GONE);
+                                loading_layout.setVisibility(View.GONE);
+                                gridview_id.setVisibility(View.GONE);
+                                musiclistview_id.setVisibility(View.VISIBLE);
+                                BaseApp.music_media_state_scan = 0;
+                                if (mymusiclistviewAdapter != null) {
+                                    mymusiclistviewAdapter = new MymusiclistviewAdapter(MainActivity.this, BaseApp.mp3Infos);
+                                    musiclistview_id.setAdapter(mymusiclistviewAdapter);
+                                } else {
+                                    mymusiclistviewAdapter = new MymusiclistviewAdapter(MainActivity.this, BaseApp.mp3Infos);
+                                    musiclistview_id.setAdapter(mymusiclistviewAdapter);
+                                }
                             }
                         }
-                    }
-                    break;
-                case Contents.SD_MUSIC_LOAD_REFRESH_LIST:
-                    BaseUtils.mlog(TAG,"-------------SD_MUSIC_LOAD_REFRESH_LIST----------------");
-                        if (BaseApp.playSourceManager == 3 && BaseApp.ifliebiaoOpen == 1 && BaseApp.current_media == 0){
+                        break;
+                    case Contents.SD_MUSIC_LOAD_REFRESH_LIST:
+                        BaseUtils.mlog(TAG, "-------------SD_MUSIC_LOAD_REFRESH_LIST----------------");
+                        if (BaseApp.playSourceManager == 3 && BaseApp.ifliebiaoOpen == 1 && BaseApp.current_media == 0) {
                             BaseUtils.mlog(TAG, "-MyHandler-" + "mp3Infos is OK,come to update the list...");
                             if (mDeviceStateSD == Contents.SD_DEVICE_STATE_MOUNTED ||
                                     (mDeviceStateSD == Contents.SD_DEVICE_STATE_SCANNER_STARTED && (BaseApp.mp3InfosSD == null || BaseApp.mp3InfosSD.size() == 0))) {
@@ -3830,7 +3925,7 @@ public class MainActivity extends Activity implements View.OnClickListener,
                                     frameAnim.start();
                                     loading_text.setText(R.string.jiazaizhong);
                                 }
-                            }else if(mDeviceStateSD == Contents.SD_STATE_SCANNER_FINISHED && (BaseApp.mp3InfosSD == null || BaseApp.mp3InfosSD.size() == 0)){
+                            } else if (mDeviceStateSD == Contents.SD_STATE_SCANNER_FINISHED && (BaseApp.mp3InfosSD == null || BaseApp.mp3InfosSD.size() == 0)) {
                                 BaseApp.music_media_state_scanSD = 0;
                                 loading_layout.setVisibility(View.VISIBLE);
                                 musiclistview_id.setVisibility(View.GONE);
@@ -3838,7 +3933,7 @@ public class MainActivity extends Activity implements View.OnClickListener,
                                 gridview_id.setVisibility(View.GONE);
                                 loading_image.setBackgroundResource(R.mipmap.jinggao_ico);
                                 loading_text.setText(R.string.wuwenjian);
-                            }else{
+                            } else {
                                 videolistview_id.setVisibility(View.GONE);
                                 loading_layout.setVisibility(View.GONE);
                                 gridview_id.setVisibility(View.GONE);
@@ -3853,103 +3948,103 @@ public class MainActivity extends Activity implements View.OnClickListener,
                                 }
                             }
                         }
-                    break;
-                case Contents.USB_VIDEO_LOAD_REFRESH_LIST:
-                    BaseUtils.mlog(TAG, "-------------VIDEO_LOAD_REFRESH_LIST-------------USB");
-                    if (BaseApp.playSourceManager == 0 && BaseApp.ifliebiaoOpen == 1 && BaseApp.current_media == 1) {
-                        BaseUtils.mlog(TAG, "-MyHandler-" + "mp4Infos is OK,come to update the list...");
-                        //数据获取结束准备刷新
-                        if (mDeviceStateUSB == Contents.USB_DEVICE_STATE_MOUNTED ||
-                                (mDeviceStateUSB == Contents.USB_DEVICE_STATE_SCANNER_STARTED && ((BaseApp.mp4Infos == null || BaseApp.mp4Infos.size() == 0))
-                                )) {
-                            BaseUtils.mlog(TAG, "-MyHandler-" + "mp4Infos is OK,come to update the list...1");
-                            loading_layout.setVisibility(View.VISIBLE);
-                            musiclistview_id.setVisibility(View.GONE);
-                            videolistview_id.setVisibility(View.GONE);
-                            gridview_id.setVisibility(View.GONE);
-                            if (BaseApp.video_media_state_scan == 0) {
-                                BaseApp.video_media_state_scan = 1;
-                                loading_image.setBackgroundResource(0);
-                                loading_image.setBackgroundResource(R.drawable.loading_ico);
-                                frameAnim = (AnimationDrawable) loading_image.getBackground();
-                                frameAnim.start();
-                                loading_text.setText(R.string.jiazaizhong);
-                            }
-                        } else if (mDeviceStateUSB == Contents.USB_DEVICE_STATE_SCANNER_FINISHED && (BaseApp.mp4Infos == null || BaseApp.mp4Infos.size() == 0)) {
-                            BaseUtils.mlog(TAG, "-MyHandler-" + "mp4Infos is OK,come to update the list...2");
-                            BaseApp.video_media_state_scan = 0;
-                            loading_layout.setVisibility(View.VISIBLE);
-                            musiclistview_id.setVisibility(View.GONE);
-                            videolistview_id.setVisibility(View.GONE);
-                            gridview_id.setVisibility(View.GONE);
-                            loading_image.setBackgroundResource(R.mipmap.jinggao_ico);
-                            loading_text.setText(R.string.wuwenjian);
-                        } else {
-                            BaseUtils.mlog(TAG, "-MyHandler-" + "mp4Infos is OK,come to update the list...3");
-                            loading_layout.setVisibility(View.GONE);
-                            gridview_id.setVisibility(View.GONE);
-                            musiclistview_id.setVisibility(View.GONE);
-                            videolistview_id.setVisibility(View.VISIBLE);
-                            BaseApp.video_media_state_scan = 0;
-
-                            if (myvideolistviewAdapter != null) {
-                                myvideolistviewAdapter = new MyvideolistviewAdapter(MainActivity.this, BaseApp.mp4Infos);
-                                videolistview_id.setAdapter(myvideolistviewAdapter);
+                        break;
+                    case Contents.USB_VIDEO_LOAD_REFRESH_LIST:
+                        BaseUtils.mlog(TAG, "-------------VIDEO_LOAD_REFRESH_LIST-------------USB");
+                        if (BaseApp.playSourceManager == 0 && BaseApp.ifliebiaoOpen == 1 && BaseApp.current_media == 1) {
+                            BaseUtils.mlog(TAG, "-MyHandler-" + "mp4Infos is OK,come to update the list...");
+                            //数据获取结束准备刷新
+                            if (mDeviceStateUSB == Contents.USB_DEVICE_STATE_MOUNTED ||
+                                    (mDeviceStateUSB == Contents.USB_DEVICE_STATE_SCANNER_STARTED && ((BaseApp.mp4Infos == null || BaseApp.mp4Infos.size() == 0))
+                                    )) {
+                                BaseUtils.mlog(TAG, "-MyHandler-" + "mp4Infos is OK,come to update the list...1");
+                                loading_layout.setVisibility(View.VISIBLE);
+                                musiclistview_id.setVisibility(View.GONE);
+                                videolistview_id.setVisibility(View.GONE);
+                                gridview_id.setVisibility(View.GONE);
+                                if (BaseApp.video_media_state_scan == 0) {
+                                    BaseApp.video_media_state_scan = 1;
+                                    loading_image.setBackgroundResource(0);
+                                    loading_image.setBackgroundResource(R.drawable.loading_ico);
+                                    frameAnim = (AnimationDrawable) loading_image.getBackground();
+                                    frameAnim.start();
+                                    loading_text.setText(R.string.jiazaizhong);
+                                }
+                            } else if (mDeviceStateUSB == Contents.USB_DEVICE_STATE_SCANNER_FINISHED && (BaseApp.mp4Infos == null || BaseApp.mp4Infos.size() == 0)) {
+                                BaseUtils.mlog(TAG, "-MyHandler-" + "mp4Infos is OK,come to update the list...2");
+                                BaseApp.video_media_state_scan = 0;
+                                loading_layout.setVisibility(View.VISIBLE);
+                                musiclistview_id.setVisibility(View.GONE);
+                                videolistview_id.setVisibility(View.GONE);
+                                gridview_id.setVisibility(View.GONE);
+                                loading_image.setBackgroundResource(R.mipmap.jinggao_ico);
+                                loading_text.setText(R.string.wuwenjian);
                             } else {
-                                myvideolistviewAdapter = new MyvideolistviewAdapter(MainActivity.this, BaseApp.mp4Infos);
-                                videolistview_id.setAdapter(myvideolistviewAdapter);
+                                BaseUtils.mlog(TAG, "-MyHandler-" + "mp4Infos is OK,come to update the list...3");
+                                loading_layout.setVisibility(View.GONE);
+                                gridview_id.setVisibility(View.GONE);
+                                musiclistview_id.setVisibility(View.GONE);
+                                videolistview_id.setVisibility(View.VISIBLE);
+                                BaseApp.video_media_state_scan = 0;
+
+                                if (myvideolistviewAdapter != null) {
+                                    myvideolistviewAdapter = new MyvideolistviewAdapter(MainActivity.this, BaseApp.mp4Infos);
+                                    videolistview_id.setAdapter(myvideolistviewAdapter);
+                                } else {
+                                    myvideolistviewAdapter = new MyvideolistviewAdapter(MainActivity.this, BaseApp.mp4Infos);
+                                    videolistview_id.setAdapter(myvideolistviewAdapter);
+                                }
                             }
                         }
-                    }
-                    break;
-                case Contents.SD_VIDEO_LOAD_REFRESH_LIST:
-                    BaseUtils.mlog(TAG,"-------------SD_VIDEO_LOAD_REFRESH_LIST----------------");
-                    if (BaseApp.playSourceManager == 3 && BaseApp.ifliebiaoOpen == 1 && BaseApp.current_media == 1) {
-                        BaseUtils.mlog(TAG, "-MyHandler-" + "mp4Infos is OK,come to update the list...");
-                        //数据获取结束准备刷新
-                        if (mDeviceStateSD == Contents.SD_DEVICE_STATE_MOUNTED ||
-                                (mDeviceStateSD == Contents.SD_DEVICE_STATE_SCANNER_STARTED && ((BaseApp.mp4InfosSD == null || BaseApp.mp4InfosSD.size() == 0)) || BaseApp.video_media_state_scan == 0)) {
-                            BaseUtils.mlog(TAG, "-MyHandler-" + "mp4Infos is OK,come to update the list...2");
-                            musiclistview_id.setVisibility(View.GONE);
-                            videolistview_id.setVisibility(View.GONE);
-                            gridview_id.setVisibility(View.GONE);
-                            loading_layout.setVisibility(View.VISIBLE);
+                        break;
+                    case Contents.SD_VIDEO_LOAD_REFRESH_LIST:
+                        BaseUtils.mlog(TAG, "-------------SD_VIDEO_LOAD_REFRESH_LIST----------------");
+                        if (BaseApp.playSourceManager == 3 && BaseApp.ifliebiaoOpen == 1 && BaseApp.current_media == 1) {
+                            BaseUtils.mlog(TAG, "-MyHandler-" + "mp4Infos is OK,come to update the list...");
+                            //数据获取结束准备刷新
+                            if (mDeviceStateSD == Contents.SD_DEVICE_STATE_MOUNTED ||
+                                    (mDeviceStateSD == Contents.SD_DEVICE_STATE_SCANNER_STARTED && ((BaseApp.mp4InfosSD == null || BaseApp.mp4InfosSD.size() == 0)) || BaseApp.video_media_state_scan == 0)) {
+                                BaseUtils.mlog(TAG, "-MyHandler-" + "mp4Infos is OK,come to update the list...2");
+                                musiclistview_id.setVisibility(View.GONE);
+                                videolistview_id.setVisibility(View.GONE);
+                                gridview_id.setVisibility(View.GONE);
+                                loading_layout.setVisibility(View.VISIBLE);
 
-                            if (BaseApp.video_media_state_scanSD == 0) {
-                                BaseApp.video_media_state_scanSD = 1;
-                                loading_image.setBackgroundResource(0);
-                                loading_image.setBackgroundResource(R.drawable.loading_ico);
-                                frameAnim = (AnimationDrawable) loading_image.getBackground();
-                                frameAnim.start();
-                                loading_text.setText(R.string.jiazaizhong);
-                            }
-                        } else if (mDeviceStateSD == Contents.SD_DEVICE_STATE_SCANNER_FINISHED && (BaseApp.mp4InfosSD == null || BaseApp.mp4InfosSD.size() == 0)) {
-                            BaseUtils.mlog(TAG, "-MyHandler-" + "mp4Infos is OK,come to update the list...3");
-                            BaseApp.video_media_state_scanSD = 0;
-                            loading_layout.setVisibility(View.VISIBLE);
-                            musiclistview_id.setVisibility(View.GONE);
-                            videolistview_id.setVisibility(View.GONE);
-                            gridview_id.setVisibility(View.GONE);
-                            loading_image.setBackgroundResource(R.mipmap.jinggao_ico);
-                            loading_text.setText(R.string.wuwenjian);
-                        } else {
-                            loading_layout.setVisibility(View.GONE);
-                            gridview_id.setVisibility(View.GONE);
-                            musiclistview_id.setVisibility(View.GONE);
-                            videolistview_id.setVisibility(View.VISIBLE);
-                            BaseApp.video_media_state_scanSD = 0;
-
-                            if (myvideolistviewAdapter != null) {
-                                myvideolistviewAdapter = new MyvideolistviewAdapter(MainActivity.this, BaseApp.mp4InfosSD);
-                                videolistview_id.setAdapter(myvideolistviewAdapter);
+                                if (BaseApp.video_media_state_scanSD == 0) {
+                                    BaseApp.video_media_state_scanSD = 1;
+                                    loading_image.setBackgroundResource(0);
+                                    loading_image.setBackgroundResource(R.drawable.loading_ico);
+                                    frameAnim = (AnimationDrawable) loading_image.getBackground();
+                                    frameAnim.start();
+                                    loading_text.setText(R.string.jiazaizhong);
+                                }
+                            } else if (mDeviceStateSD == Contents.SD_DEVICE_STATE_SCANNER_FINISHED && (BaseApp.mp4InfosSD == null || BaseApp.mp4InfosSD.size() == 0)) {
+                                BaseUtils.mlog(TAG, "-MyHandler-" + "mp4Infos is OK,come to update the list...3");
+                                BaseApp.video_media_state_scanSD = 0;
+                                loading_layout.setVisibility(View.VISIBLE);
+                                musiclistview_id.setVisibility(View.GONE);
+                                videolistview_id.setVisibility(View.GONE);
+                                gridview_id.setVisibility(View.GONE);
+                                loading_image.setBackgroundResource(R.mipmap.jinggao_ico);
+                                loading_text.setText(R.string.wuwenjian);
                             } else {
-                                myvideolistviewAdapter = new MyvideolistviewAdapter(MainActivity.this, BaseApp.mp4InfosSD);
-                                videolistview_id.setAdapter(myvideolistviewAdapter);
+                                loading_layout.setVisibility(View.GONE);
+                                gridview_id.setVisibility(View.GONE);
+                                musiclistview_id.setVisibility(View.GONE);
+                                videolistview_id.setVisibility(View.VISIBLE);
+                                BaseApp.video_media_state_scanSD = 0;
+
+                                if (myvideolistviewAdapter != null) {
+                                    myvideolistviewAdapter = new MyvideolistviewAdapter(MainActivity.this, BaseApp.mp4InfosSD);
+                                    videolistview_id.setAdapter(myvideolistviewAdapter);
+                                } else {
+                                    myvideolistviewAdapter = new MyvideolistviewAdapter(MainActivity.this, BaseApp.mp4InfosSD);
+                                    videolistview_id.setAdapter(myvideolistviewAdapter);
+                                }
                             }
                         }
-                    }
-                    break;
-                case Contents.USB_IMAGE_LOAD_REFRESH_LIST:
+                        break;
+                    case Contents.USB_IMAGE_LOAD_REFRESH_LIST:
                         BaseUtils.mlog(TAG, "-------------IMAGE_LOAD_REFRESH_LIST-------------USB");
                         if (BaseApp.playSourceManager == 0 && BaseApp.ifliebiaoOpen == 1 && BaseApp.current_media == 2) {
                             if (mDeviceStateUSB == Contents.USB_DEVICE_STATE_MOUNTED ||
@@ -3992,203 +4087,204 @@ public class MainActivity extends Activity implements View.OnClickListener,
                                 }
                             }
                         }
-                    break;
-                case Contents.SD_IMAGE_LOAD_REFRESH_LIST:
-                    BaseUtils.mlog(TAG, "-------------IMAGE_LOAD_FINISH-------------USB");
-                    if (BaseApp.playSourceManager == 3 && BaseApp.ifliebiaoOpen == 1 && BaseApp.current_media == 2) {
-                        if (mDeviceStateSD == Contents.SD_DEVICE_STATE_MOUNTED ||
-                                (mDeviceStateSD == Contents.SD_DEVICE_STATE_SCANNER_STARTED && ((BaseApp.picInfosSD == null || BaseApp.picInfosSD.size() == 0))
-                                )) {
-                            loading_layout.setVisibility(View.VISIBLE);
-                            musiclistview_id.setVisibility(View.GONE);
-                            videolistview_id.setVisibility(View.GONE);
-                            gridview_id.setVisibility(View.GONE);
-                            if (BaseApp.pic_media_state_scanSD == 0) {
-                                BaseApp.pic_media_state_scanSD = 1;
-                                loading_image.setBackgroundResource(0);
-                                loading_image.setBackgroundResource(R.drawable.loading_ico);
-                                frameAnim = (AnimationDrawable) loading_image.getBackground();
-                                frameAnim.start();
-                                loading_text.setText(R.string.jiazaizhong);
-                            }
-                        } else if (mDeviceStateSD != Contents.SD_DEVICE_STATE_SCANNER_STARTED && (BaseApp.picInfosSD == null || BaseApp.picInfosSD.size() == 0)) {
-                            BaseApp.pic_media_state_scanSD = 0;
-                            loading_layout.setVisibility(View.VISIBLE);
-                            musiclistview_id.setVisibility(View.GONE);
-                            videolistview_id.setVisibility(View.GONE);
-                            gridview_id.setVisibility(View.GONE);
-                            loading_image.setBackgroundResource(R.mipmap.jinggao_ico);
-                            loading_text.setText(R.string.wuwenjian);
-                        } else {
-                            loading_layout.setVisibility(View.GONE);
-                            musiclistview_id.setVisibility(View.GONE);
-                            videolistview_id.setVisibility(View.GONE);
-                            gridview_id.setVisibility(View.VISIBLE);
-                            BaseApp.pic_media_state_scanSD = 0;
-
-                            if (myGridViewAdapter2 != null) {
-                                myGridViewAdapter2 = new MyGridViewAdapter2(MainActivity.this, BaseApp.picInfosSD);
-                                gridview_id.setAdapter(myGridViewAdapter2);
+                        break;
+                    case Contents.SD_IMAGE_LOAD_REFRESH_LIST:
+                        BaseUtils.mlog(TAG, "-------------IMAGE_LOAD_FINISH-------------USB");
+                        if (BaseApp.playSourceManager == 3 && BaseApp.ifliebiaoOpen == 1 && BaseApp.current_media == 2) {
+                            if (mDeviceStateSD == Contents.SD_DEVICE_STATE_MOUNTED ||
+                                    (mDeviceStateSD == Contents.SD_DEVICE_STATE_SCANNER_STARTED && ((BaseApp.picInfosSD == null || BaseApp.picInfosSD.size() == 0))
+                                    )) {
+                                loading_layout.setVisibility(View.VISIBLE);
+                                musiclistview_id.setVisibility(View.GONE);
+                                videolistview_id.setVisibility(View.GONE);
+                                gridview_id.setVisibility(View.GONE);
+                                if (BaseApp.pic_media_state_scanSD == 0) {
+                                    BaseApp.pic_media_state_scanSD = 1;
+                                    loading_image.setBackgroundResource(0);
+                                    loading_image.setBackgroundResource(R.drawable.loading_ico);
+                                    frameAnim = (AnimationDrawable) loading_image.getBackground();
+                                    frameAnim.start();
+                                    loading_text.setText(R.string.jiazaizhong);
+                                }
+                            } else if (mDeviceStateSD != Contents.SD_DEVICE_STATE_SCANNER_STARTED && (BaseApp.picInfosSD == null || BaseApp.picInfosSD.size() == 0)) {
+                                BaseApp.pic_media_state_scanSD = 0;
+                                loading_layout.setVisibility(View.VISIBLE);
+                                musiclistview_id.setVisibility(View.GONE);
+                                videolistview_id.setVisibility(View.GONE);
+                                gridview_id.setVisibility(View.GONE);
+                                loading_image.setBackgroundResource(R.mipmap.jinggao_ico);
+                                loading_text.setText(R.string.wuwenjian);
                             } else {
-                                BaseUtils.mlog(TAG, "-MyHandler-" + "picInfos is OK,come to update the gridview...");
-                                myGridViewAdapter2 = new MyGridViewAdapter2(MainActivity.this, BaseApp.picInfosSD);
-                                gridview_id.setAdapter(myGridViewAdapter2);
+                                loading_layout.setVisibility(View.GONE);
+                                musiclistview_id.setVisibility(View.GONE);
+                                videolistview_id.setVisibility(View.GONE);
+                                gridview_id.setVisibility(View.VISIBLE);
+                                BaseApp.pic_media_state_scanSD = 0;
+
+                                if (myGridViewAdapter2 != null) {
+                                    myGridViewAdapter2 = new MyGridViewAdapter2(MainActivity.this, BaseApp.picInfosSD);
+                                    gridview_id.setAdapter(myGridViewAdapter2);
+                                } else {
+                                    BaseUtils.mlog(TAG, "-MyHandler-" + "picInfos is OK,come to update the gridview...");
+                                    myGridViewAdapter2 = new MyGridViewAdapter2(MainActivity.this, BaseApp.picInfosSD);
+                                    gridview_id.setAdapter(myGridViewAdapter2);
+                                }
                             }
                         }
-                    }
-                    break;
-                case BtmusicPlay.MSG_ACTIVITY_CHANGE:
-                    BaseUtils.mlog(TAG, "-------------MSG_ACTIVITY_CHANGE------蓝牙fragment刷新-------");
+                        break;
+                    case BtmusicPlay.MSG_ACTIVITY_CHANGE:
+                        BaseUtils.mlog(TAG, "-------------MSG_ACTIVITY_CHANGE------蓝牙fragment刷新-------");
 
-                    if(BaseApp.playSourceManager == 1) {
-                        musicFragment.zhuanji_layout.setVisibility(View.GONE);
-                        musicFragment.order_layout.setVisibility(View.INVISIBLE);
-                        musicFragment.progress_really_layout.setVisibility(View.INVISIBLE);
-                        if (mBtmusictPlay.txtName != null && mBtmusictPlay.txtName.length() > 0) {
-                            BaseUtils.mlog(TAG, "-MSG_ACTIVITY_CHANGE-" + "mBtmusictPlay.txtName" + mBtmusictPlay.txtName);
-                            musicFragment.song_name.setText(mBtmusictPlay.txtName);
-                        } else {
-                            BaseUtils.mlog(TAG, "-MSG_ACTIVITY_CHANGE-" + "歌曲名称为空");
-                            musicFragment.song_name.setText(R.string.gequmingcheng);
+                        if (BaseApp.playSourceManager == 1) {
+                            musicFragment.zhuanji_layout.setVisibility(View.GONE);
+                            musicFragment.order_layout.setVisibility(View.INVISIBLE);
+                            musicFragment.progress_really_layout.setVisibility(View.INVISIBLE);
+                            if (mBtmusictPlay.txtName != null && mBtmusictPlay.txtName.length() > 0) {
+                                BaseUtils.mlog(TAG, "-MSG_ACTIVITY_CHANGE-" + "mBtmusictPlay.txtName" + mBtmusictPlay.txtName);
+                                musicFragment.song_name.setText(mBtmusictPlay.txtName);
+                            } else {
+                                BaseUtils.mlog(TAG, "-MSG_ACTIVITY_CHANGE-" + "歌曲名称为空");
+                                musicFragment.song_name.setText(R.string.gequmingcheng);
+                            }
+                            if (mBtmusictPlay.txtArtists != null && mBtmusictPlay.txtArtists.length() > 0) {
+                                BaseUtils.mlog(TAG, "-MSG_ACTIVITY_CHANGE-" + "mBtmusictPlay.txtArtists" + mBtmusictPlay.txtArtists);
+                                musicFragment.chuangzhe_name.setText(mBtmusictPlay.txtArtists);
+                            } else {
+                                BaseUtils.mlog(TAG, "-MSG_ACTIVITY_CHANGE-" + "艺术家为空");
+                                musicFragment.chuangzhe_name.setText(R.string.geshou);
+                            }
+                            musicFragment.bt_device_name.setText(BaseApp.btphone_name);
                         }
-                        if (mBtmusictPlay.txtArtists != null && mBtmusictPlay.txtArtists.length() > 0) {
-                            BaseUtils.mlog(TAG, "-MSG_ACTIVITY_CHANGE-" + "mBtmusictPlay.txtArtists" + mBtmusictPlay.txtArtists);
-                            musicFragment.chuangzhe_name.setText(mBtmusictPlay.txtArtists);
-                        } else {
-                            BaseUtils.mlog(TAG, "-MSG_ACTIVITY_CHANGE-" + "艺术家为空");
-                            musicFragment.chuangzhe_name.setText(R.string.geshou);
+                        break;
+                    case Contents.BLUETOOTH_PLAY:  //连接上蓝牙，就改变状态   666
+                        BaseUtils.mlog(TAG, "-------------BLUETOOTH_PLAY-------------");
+                        musicFragment.musicUIUpdateListener.onYinyuanChangeToBT();
+                        break;
+                    case Contents.BLUETOOTH_CONNECTED:
+                        BaseUtils.mlog(TAG, "-------------BLUETOOTH_CONNECTED-------------");
+                        //启动的时候，如果蓝牙连接上了，我再去绑定服务，会获得连接的状态。
+                        //点亮图标，如果当前的playsourcemanager是1的话，
+                        if (BaseApp.current_fragment == 0) {
+                            musicFragment.button_bluetooth.setImageResource(R.mipmap.bt_n);
+                            BaseApp.ifBluetoothConnected = true;
+                            if (BaseApp.playSourceManager != 1) {
+                                BaseApp.detect_device_num = 1;
+                                dialog(getString(R.string.dialog_str_bt));
+                            }
                         }
-                        musicFragment.bt_device_name.setText(BaseApp.btphone_name);
-                    }
-                    break;
-                case Contents.BLUETOOTH_PLAY:  //连接上蓝牙，就改变状态   666
-                    BaseUtils.mlog(TAG, "-------------BLUETOOTH_PLAY-------------");
-                    musicFragment.musicUIUpdateListener.onYinyuanChangeToBT();
-                    break;
-                case Contents.BLUETOOTH_CONNECTED:
-                    BaseUtils.mlog(TAG, "-------------BLUETOOTH_CONNECTED-------------");
-                    //启动的时候，如果蓝牙连接上了，我再去绑定服务，会获得连接的状态。
-                    //点亮图标，如果当前的playsourcemanager是1的话，
-                    if(BaseApp.current_fragment == 0) {
-                        musicFragment.button_bluetooth.setImageResource(R.mipmap.bt_n);
-                        BaseApp.ifBluetoothConnected = true;
-                        if (BaseApp.playSourceManager != 1) {
-                            BaseApp.detect_device_num = 1;
-                            dialog(getString(R.string.dialog_str_bt));
-                        }
-                    }
-                    break;
-                case Contents.BLUETOOTH_DISCONNECTED:
-                    BaseUtils.mlog(TAG, "-------------BLUETOOTH_DISCONNECTED-------------");
-                    //图标变暗并且如果是在蓝牙界面还需要切换
-                    BaseApp.ifBluetoothConnected = false;
-                    if(BaseApp.playSourceManager == 1){ //正在播放蓝牙音乐
-                        musicFragment.button_bluetooth.setImageResource(R.mipmap.bt_p);
-                        switch(BaseApp.last_playSourceManager){
-                            case 0://相当于点击了fragment的sd卡按钮
-                                if(BaseApp.ifhaveUSBdevice){
-                                    musicFragment.musicUIUpdateListener.onSavePlaySource(0);
-                                    BaseApp.last_playSourceManager = BaseApp.playSourceManager ;
-                                    BaseApp.playSourceManager = 0;
-                                    musicFragment.button_bluetooth.setBackgroundResource(R.mipmap.touming_b);
-                                    musicFragment.button_aux.setBackgroundResource(R.mipmap.touming_b);
-                                    musicFragment.button_SDCard.setBackgroundResource(R.mipmap.touming_b);
-                                    musicFragment.button_usb.setBackgroundResource(R.mipmap.yinyuan_p);
-                                    musicFragment.musicUIUpdateListener.onYinyuanChangeToUSB();
-                                }else if(BaseApp.ifhavaSDdevice){
-                                    musicFragment.musicUIUpdateListener.onSavePlaySource(3);
-                                    BaseApp.last_playSourceManager = BaseApp.playSourceManager ;
-                                    BaseApp.playSourceManager = 3;
-                                    musicFragment.button_bluetooth.setBackgroundResource(R.mipmap.touming_b);
-                                    musicFragment.button_aux.setBackgroundResource(R.mipmap.touming_b);
-                                    musicFragment.button_usb.setBackgroundResource(R.mipmap.touming_b);
-                                    musicFragment.button_SDCard.setBackgroundResource(R.mipmap.yinyuan_p);
-                                    musicFragment.musicUIUpdateListener.onYinyuanChangeToSD();
-                                }else{//回到aux
-                                    musicFragment.musicUIUpdateListener.onSavePlaySource(2);
-                                    BaseApp.last_playSourceManager = BaseApp.playSourceManager ;
-                                    BaseApp.playSourceManager = 2;
-                                    musicFragment.button_usb.setBackgroundResource(R.mipmap.touming_b);
-                                    musicFragment.button_bluetooth.setBackgroundResource(R.mipmap.touming_b);
-                                    musicFragment.button_aux.setBackgroundResource(R.mipmap.yinyuan_p);
-                                    musicFragment.button_SDCard.setBackgroundResource(R.mipmap.touming_b);
-                                    musicFragment.musicUIUpdateListener.onAUXEent();
-                                }
-                                break;
-                            case 3://蓝牙
-                                if(BaseApp.ifhavaSDdevice){
-                                    musicFragment.musicUIUpdateListener.onSavePlaySource(3);
-                                    BaseApp.last_playSourceManager = BaseApp.playSourceManager ;
-                                    BaseApp.playSourceManager = 3;
-                                    musicFragment.button_bluetooth.setBackgroundResource(R.mipmap.touming_b);
-                                    musicFragment.button_aux.setBackgroundResource(R.mipmap.touming_b);
-                                    musicFragment.button_usb.setBackgroundResource(R.mipmap.touming_b);
-                                    musicFragment.button_SDCard.setBackgroundResource(R.mipmap.yinyuan_p);
-                                    musicFragment.musicUIUpdateListener.onYinyuanChangeToSD();
-                                }else if(BaseApp.ifhaveUSBdevice){
-                                    musicFragment.musicUIUpdateListener.onSavePlaySource(0);
-                                    BaseApp.last_playSourceManager = BaseApp.playSourceManager ;
-                                    BaseApp.playSourceManager = 0;
-                                    musicFragment.button_SDCard.setBackgroundResource(R.mipmap.touming_b);
-                                    musicFragment.button_bluetooth.setBackgroundResource(R.mipmap.touming_b);
-                                    musicFragment.button_aux.setBackgroundResource(R.mipmap.touming_b);
-                                    musicFragment.button_usb.setBackgroundResource(R.mipmap.yinyuan_p);
-                                    musicFragment.musicUIUpdateListener.onYinyuanChangeToUSB();
-                                }else{//回到aux
-                                    musicFragment.musicUIUpdateListener.onSavePlaySource(2);
-                                    BaseApp.last_playSourceManager = BaseApp.playSourceManager ;
-                                    BaseApp.playSourceManager = 2;
-                                    musicFragment.button_usb.setBackgroundResource(R.mipmap.touming_b);
-                                    musicFragment.button_bluetooth.setBackgroundResource(R.mipmap.touming_b);
-                                    musicFragment.button_aux.setBackgroundResource(R.mipmap.yinyuan_p);
-                                    musicFragment.button_SDCard.setBackgroundResource(R.mipmap.touming_b);
-                                    musicFragment.musicUIUpdateListener.onAUXEent();
-                                }
-                                break;
-                            default:  //第一次插入，然后就拔掉
-                                musicFragment.musicUIUpdateListener.onSavePlaySource(2);
-                                BaseApp.last_playSourceManager = BaseApp.playSourceManager ;
-                                BaseApp.playSourceManager = 2;
-                                musicFragment.button_usb.setBackgroundResource(R.mipmap.touming_b);
-                                musicFragment.button_bluetooth.setBackgroundResource(R.mipmap.touming_b);
-                                musicFragment.button_aux.setBackgroundResource(R.mipmap.yinyuan_p);
-                                musicFragment.button_SDCard.setBackgroundResource(R.mipmap.touming_b);
-                                musicFragment.musicUIUpdateListener.onAUXEent();
-                                break;
-                        }
-                    }else{//当前播放的不是蓝牙音乐
-                        if(BaseApp.current_fragment == 0){
+                        break;
+                    case Contents.BLUETOOTH_DISCONNECTED:
+                        BaseUtils.mlog(TAG, "-------------BLUETOOTH_DISCONNECTED-------------");
+                        //图标变暗并且如果是在蓝牙界面还需要切换
+                        BaseApp.ifBluetoothConnected = false;
+                        if (BaseApp.playSourceManager == 1) { //正在播放蓝牙音乐
                             musicFragment.button_bluetooth.setImageResource(R.mipmap.bt_p);
+                            switch (BaseApp.last_playSourceManager) {
+                                case 0://相当于点击了fragment的sd卡按钮
+                                    if (BaseApp.ifhaveUSBdevice) {
+                                        musicFragment.musicUIUpdateListener.onSavePlaySource(0);
+                                        BaseApp.last_playSourceManager = BaseApp.playSourceManager;
+                                        BaseApp.playSourceManager = 0;
+                                        musicFragment.button_bluetooth.setBackgroundResource(R.mipmap.touming_b);
+                                        musicFragment.button_aux.setBackgroundResource(R.mipmap.touming_b);
+                                        musicFragment.button_SDCard.setBackgroundResource(R.mipmap.touming_b);
+                                        musicFragment.button_usb.setBackgroundResource(R.mipmap.yinyuan_p);
+                                        musicFragment.musicUIUpdateListener.onYinyuanChangeToUSB();
+                                    } else if (BaseApp.ifhavaSDdevice) {
+                                        musicFragment.musicUIUpdateListener.onSavePlaySource(3);
+                                        BaseApp.last_playSourceManager = BaseApp.playSourceManager;
+                                        BaseApp.playSourceManager = 3;
+                                        musicFragment.button_bluetooth.setBackgroundResource(R.mipmap.touming_b);
+                                        musicFragment.button_aux.setBackgroundResource(R.mipmap.touming_b);
+                                        musicFragment.button_usb.setBackgroundResource(R.mipmap.touming_b);
+                                        musicFragment.button_SDCard.setBackgroundResource(R.mipmap.yinyuan_p);
+                                        musicFragment.musicUIUpdateListener.onYinyuanChangeToSD();
+                                    } else {//回到aux
+                                        musicFragment.musicUIUpdateListener.onSavePlaySource(2);
+                                        BaseApp.last_playSourceManager = BaseApp.playSourceManager;
+                                        BaseApp.playSourceManager = 2;
+                                        musicFragment.button_usb.setBackgroundResource(R.mipmap.touming_b);
+                                        musicFragment.button_bluetooth.setBackgroundResource(R.mipmap.touming_b);
+                                        musicFragment.button_aux.setBackgroundResource(R.mipmap.yinyuan_p);
+                                        musicFragment.button_SDCard.setBackgroundResource(R.mipmap.touming_b);
+                                        musicFragment.musicUIUpdateListener.onAUXEent();
+                                    }
+                                    break;
+                                case 3://蓝牙
+                                    if (BaseApp.ifhavaSDdevice) {
+                                        musicFragment.musicUIUpdateListener.onSavePlaySource(3);
+                                        BaseApp.last_playSourceManager = BaseApp.playSourceManager;
+                                        BaseApp.playSourceManager = 3;
+                                        musicFragment.button_bluetooth.setBackgroundResource(R.mipmap.touming_b);
+                                        musicFragment.button_aux.setBackgroundResource(R.mipmap.touming_b);
+                                        musicFragment.button_usb.setBackgroundResource(R.mipmap.touming_b);
+                                        musicFragment.button_SDCard.setBackgroundResource(R.mipmap.yinyuan_p);
+                                        musicFragment.musicUIUpdateListener.onYinyuanChangeToSD();
+                                    } else if (BaseApp.ifhaveUSBdevice) {
+                                        musicFragment.musicUIUpdateListener.onSavePlaySource(0);
+                                        BaseApp.last_playSourceManager = BaseApp.playSourceManager;
+                                        BaseApp.playSourceManager = 0;
+                                        musicFragment.button_SDCard.setBackgroundResource(R.mipmap.touming_b);
+                                        musicFragment.button_bluetooth.setBackgroundResource(R.mipmap.touming_b);
+                                        musicFragment.button_aux.setBackgroundResource(R.mipmap.touming_b);
+                                        musicFragment.button_usb.setBackgroundResource(R.mipmap.yinyuan_p);
+                                        musicFragment.musicUIUpdateListener.onYinyuanChangeToUSB();
+                                    } else {//回到aux
+                                        musicFragment.musicUIUpdateListener.onSavePlaySource(2);
+                                        BaseApp.last_playSourceManager = BaseApp.playSourceManager;
+                                        BaseApp.playSourceManager = 2;
+                                        musicFragment.button_usb.setBackgroundResource(R.mipmap.touming_b);
+                                        musicFragment.button_bluetooth.setBackgroundResource(R.mipmap.touming_b);
+                                        musicFragment.button_aux.setBackgroundResource(R.mipmap.yinyuan_p);
+                                        musicFragment.button_SDCard.setBackgroundResource(R.mipmap.touming_b);
+                                        musicFragment.musicUIUpdateListener.onAUXEent();
+                                    }
+                                    break;
+                                default:  //第一次插入，然后就拔掉
+                                    musicFragment.musicUIUpdateListener.onSavePlaySource(2);
+                                    BaseApp.last_playSourceManager = BaseApp.playSourceManager;
+                                    BaseApp.playSourceManager = 2;
+                                    musicFragment.button_usb.setBackgroundResource(R.mipmap.touming_b);
+                                    musicFragment.button_bluetooth.setBackgroundResource(R.mipmap.touming_b);
+                                    musicFragment.button_aux.setBackgroundResource(R.mipmap.yinyuan_p);
+                                    musicFragment.button_SDCard.setBackgroundResource(R.mipmap.touming_b);
+                                    musicFragment.musicUIUpdateListener.onAUXEent();
+                                    break;
+                            }
+                        } else {//当前播放的不是蓝牙音乐
+                            if (BaseApp.current_fragment == 0) {
+                                musicFragment.button_bluetooth.setImageResource(R.mipmap.bt_p);
+                            }
                         }
-                    }
-                    break;
-                case Contents.BLUETOORH_CHANGE_BOFANG_BUTTON:                //888
-                    BaseUtils.mlog(TAG, "-------------BLUETOORH_CHANGE_BOFANG_BUTTON-------------");
-                    if(mBtmusictPlay!=null) {
-                        if (mBtmusictPlay.mPlayStatus && (mBtmusictPlay.outSoundisPlay == 2)) {
-                            BaseUtils.mlog(TAG, "蓝牙播放");
-                            button_bofang_bluetooth.setImageResource(R.mipmap.bofang_bluetooth);
+                        break;
+                    case Contents.BLUETOORH_CHANGE_BOFANG_BUTTON:                //888
+                        BaseUtils.mlog(TAG, "-------------BLUETOORH_CHANGE_BOFANG_BUTTON-------------");
+                        if (mBtmusictPlay != null) {
+                            if (mBtmusictPlay.mPlayStatus && (mBtmusictPlay.outSoundisPlay == 2)) {
+                                BaseUtils.mlog(TAG, "蓝牙播放");
+                                button_bofang_bluetooth.setImageResource(R.mipmap.bofang_bluetooth);
+                            } else {
+                                BaseUtils.mlog(TAG, "蓝牙暂停-" + mBtmusictPlay.mPlayStatus + "----" + mBtmusictPlay.outSoundisPlay);
+                                button_bofang_bluetooth.setImageResource(R.mipmap.bofang_bluetooth);  //zanting_bluetooth
+                            }
                         } else {
-                            BaseUtils.mlog(TAG, "蓝牙暂停-"+mBtmusictPlay.mPlayStatus+"----"+mBtmusictPlay.outSoundisPlay);
-                            button_bofang_bluetooth.setImageResource(R.mipmap.bofang_bluetooth);  //zanting_bluetooth
+                            BaseUtils.mlog(TAG, "-MyHandler-" + "mBtmusictPlay为空了");
                         }
-                    }else{
-                        BaseUtils.mlog(TAG, "-MyHandler-" + "mBtmusictPlay为空了");
-                    }
-                    break;
-                case Contents.IMAGE_PPT_COMEBACK://处理PPTactivity返回来的消息显示   31
-                    BaseUtils.mlog(TAG, "-------------IMAGE_PPT_COMEBACK-------------");
-                    String mybigPicPath = null;
-                    if(BaseApp.playSourceManager == 0) {
-                        mybigPicPath = BaseApp.picInfos.get(BaseApp.current_pic_play_numUSB).getData();
-                    }else if(BaseApp.playSourceManager == 3){
-                        mybigPicPath = BaseApp.picInfosSD.get(BaseApp.current_pic_play_numSD).getData();
-                    }
-                    Bitmap bm = pictureFragment.convertToBitmap(mybigPicPath, 800, 350);
-                    pictureFragment.big_pic_show.setImageBitmap(bm);
-                    button_bofang.setImageResource(R.mipmap.zanting_pic);
-                    break;
+                        break;
+                    case Contents.IMAGE_PPT_COMEBACK://处理PPTactivity返回来的消息显示   31
+                        BaseUtils.mlog(TAG, "-------------IMAGE_PPT_COMEBACK-------------");
+                        String mybigPicPath = null;
+                        if (BaseApp.playSourceManager == 0) {
+                            mybigPicPath = BaseApp.picInfos.get(BaseApp.current_pic_play_numUSB).getData();
+                        } else if (BaseApp.playSourceManager == 3) {
+                            mybigPicPath = BaseApp.picInfosSD.get(BaseApp.current_pic_play_numSD).getData();
+                        }
+                        Bitmap bm = pictureFragment.convertToBitmap(mybigPicPath, 800, 350);
+                        pictureFragment.big_pic_show.setImageBitmap(bm);
+                        button_bofang.setImageResource(R.mipmap.zanting_pic);
+                        break;
 
+                }
             }
         }
     }
