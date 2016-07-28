@@ -35,6 +35,8 @@
                     android:layout_height="wrap_content"
                     android:visibility="invisible"
                     android:text="@string/shebei"
+                    android:ems="10"
+                    android:singleLine="true"
                     android:layout_marginLeft="74dp"
                     android:gravity="center"
                     android:textSize="20sp"
@@ -77,6 +79,8 @@
                         android:layout_height="wrap_content"
                         android:text="@string/zhuanji"
                         android:layout_marginLeft="20dp"
+                        android:ems="10"
+                        android:singleLine="true"
                         android:textColor="#ffffff"
                         android:gravity="center"
                         android:textSize="20sp"/>
@@ -96,6 +100,8 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/geshou"
+                        android:ems="10"
+                        android:singleLine="true"
                         android:layout_marginLeft="20dp"
                         android:textColor="#ffffff"
                         android:gravity="center"
@@ -111,70 +117,28 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:id="@+id/button_play_mode_ico"
+                        android:layout_gravity="center_vertical"
                         android:src="@mipmap/suiji_ico"/>
                     <TextView
                         android:id="@+id/button_play_mode_name"
-                        android:layout_width="wrap_content"
+                        android:layout_width="150dp"
                         android:layout_height="wrap_content"
                         android:text="@string/suijibofang"
                         android:layout_marginLeft="20dp"
                         android:textColor="#ffffff"
-                        android:gravity="center"
+                        android:gravity="left"
                         android:textSize="20sp"/>
                     <TextView
                         android:id="@+id/num_order"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="0"
-                        android:layout_weight="1"
+                        android:layout_gravity="center_horizontal"
                         android:textColor="#ffffff"
-                        android:gravity="center"
+                        android:layout_marginLeft="20dp"
                         android:textSize="20sp"/>
                 </LinearLayout>
 
-            </LinearLayout>
-
-
-            <LinearLayout
-                android:id="@+id/come_from_layout"
-                android:layout_alignParentRight="true"
-                android:layout_centerVertical="true"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@mipmap/yinyuan_background2"
-                android:orientation="vertical">
-                <ImageButton
-                    android:id="@+id/button_usb"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:background="@mipmap/touming_b"
-                    android:src="@mipmap/usb_p"
-                    />
-                <ImageButton
-                    android:id="@+id/button_bluetooth"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:background="@mipmap/touming_b"
-                    android:src="@mipmap/bt_p"
-                    />
-                <ImageButton
-                    android:id="@+id/button_aux"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:background="@mipmap/touming_b"
-                    android:src="@mipmap/aux_p"
-                    />
-                <ImageButton
-                    android:id="@+id/button_SDCard"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:background="@mipmap/touming_b"
-                    android:src="@mipmap/sd_ico_n"
-                    />
             </LinearLayout>
         </RelativeLayout>
 

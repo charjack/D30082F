@@ -1,10 +1,10 @@
-package com.wedesign.mediaplayer.MediaPlayerService;
+package com.wedesign.mediaplayer.MediaService;
 
 import android.os.Handler;
 import android.os.RemoteException;
 
 import com.wedesign.mediaplayer.Utils.BaseUtils;
-import com.wedesign.mediaplayerservice.IMediaPlayerCallback;
+import com.wedesign.mediaservice.IMediaPlayerCallback;
 
 /**
  * Created by NANA on 2016/6/21.
@@ -18,6 +18,6 @@ public class MediaPlayerCallback  extends IMediaPlayerCallback.Stub{
     @Override
     public void onBlueToothConnectState(boolean ifconnected) throws RemoteException {
 //        BaseApp.ifBluetoothConnected = ifconnected;
-        BaseUtils.mlog(TAG,"onBlueToothConnectState----ifconnected----"+ifconnected);
+//        BaseUtils.mlog(TAG,"onBlueToothConnectState----ifconnected----"+ifconnected);
     }
 }

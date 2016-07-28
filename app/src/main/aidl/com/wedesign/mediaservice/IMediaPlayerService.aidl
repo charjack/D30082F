@@ -1,6 +1,6 @@
 // IMediaPlayerService.aidl
-package com.wedesign.mediaplayerservice;
-import com.wedesign.mediaplayerservice.IMediaPlayerCallback;
+package com.wedesign.mediaservice;
+import com.wedesign.mediaservice.IMediaPlayerCallback;
 // Declare any non-default types here with import statements
 
 interface IMediaPlayerService {

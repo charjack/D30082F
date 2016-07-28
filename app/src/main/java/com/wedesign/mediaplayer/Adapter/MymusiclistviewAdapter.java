@@ -11,6 +11,7 @@ import android.widget.TextView;
 
 import com.wedesign.mediaplayer.BaseApp;
 import com.wedesign.mediaplayer.R;
+import com.wedesign.mediaplayer.Utils.ChineseUtil;
 import com.wedesign.mediaplayer.vo.Mp3Info;
 
 import java.util.List;
@@ -30,7 +31,10 @@ public class MymusiclistviewAdapter extends BaseAdapter {
 
     @Override
     public int getCount() {
-        return lists.size();
+        if(lists!=null && lists.size()>0) {
+            return lists.size();
+        }
+        return 0;
     }
 
     @Override
@@ -59,7 +63,7 @@ public class MymusiclistviewAdapter extends BaseAdapter {
             if (BaseApp.current_music_play_numUSB == position) {
                 vh.imageView.setImageResource(R.mipmap.yinyue_p);
                 vh.textView.setText(mp3Info.getTittle() + " - " + mp3Info.getArtist());
-                vh.textView.setTextColor(Color.rgb(01, 66, 255));
+                vh.textView.setTextColor(Color.rgb(1, 66, 255));
             } else {
                 vh.imageView.setImageResource(R.mipmap.yinyue_n);
                 vh.textView.setText(mp3Info.getTittle() + " - " + mp3Info.getArtist());
@@ -69,7 +73,7 @@ public class MymusiclistviewAdapter extends BaseAdapter {
             if (BaseApp.current_music_play_numSD == position) {
                 vh.imageView.setImageResource(R.mipmap.yinyue_p);
                 vh.textView.setText(mp3Info.getTittle() + " - " + mp3Info.getArtist());
-                vh.textView.setTextColor(Color.rgb(01, 66, 255));
+                vh.textView.setTextColor(Color.rgb(1, 66, 255));
             } else {
                 vh.imageView.setImageResource(R.mipmap.yinyue_n);
                 vh.textView.setText(mp3Info.getTittle() + " - " + mp3Info.getArtist());

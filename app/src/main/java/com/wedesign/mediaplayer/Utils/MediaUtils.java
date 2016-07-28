@@ -12,7 +12,9 @@ import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 
 
+import com.wedesign.mediaplayer.BaseApp;
 import com.wedesign.mediaplayer.R;
+import com.wedesign.mediaplayer.vo.Contents;
 import com.wedesign.mediaplayer.vo.Mp3Info;
 
 import java.io.FileDescriptor;
@@ -52,6 +54,7 @@ public class MediaUtils {
             long size =cursor.getLong(cursor.getColumnIndex(MediaStore.Audio.Media.SIZE));
             String url = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA));
             int isMusic = cursor.getInt(cursor.getColumnIndex(MediaStore.Audio.Media.IS_MUSIC));
+            String dispalyename = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DISPLAY_NAME));
 
             if(isMusic != 0 ){
                 mp3Info.setId(id);
@@ -62,6 +65,20 @@ public class MediaUtils {
                 mp3Info.setDuration(duration);
                 mp3Info.setSize(size);
                 mp3Info.setUrl(url);
+                mp3Info.setDisplayName(dispalyename);
+
+                if(ChineseUtil.isMessyCode(mp3Info.getTittle()) || mp3Info.getTittle().contains("??")){
+                    dispalyename=dispalyename.substring(0, dispalyename.lastIndexOf('.')); //去掉".mp3"
+                    mp3Info.setTittle(dispalyename);
+                }
+
+                if(ChineseUtil.isMessyCode(mp3Info.getArtist()) || mp3Info.getArtist().contains("??")){
+                    mp3Info.setArtist(BaseApp.appContext.getResources().getString(R.string.weizhi));
+                }
+
+                if(ChineseUtil.isMessyCode(mp3Info.getAlbum()) || mp3Info.getAlbum().contains("??")){
+                    mp3Info.setAlbum(BaseApp.appContext.getResources().getString(R.string.weizhi));
+                }
             }
         }
 
@@ -89,6 +106,7 @@ public class MediaUtils {
             long size =cursor.getLong(cursor.getColumnIndex(MediaStore.Audio.Media.SIZE));
             String url = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA));
             int isMusic = cursor.getInt(cursor.getColumnIndex(MediaStore.Audio.Media.IS_MUSIC));
+            String dispalyename = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DISPLAY_NAME));
 
             if(isMusic != 0 ){
                 mp3Info.setId(id);
@@ -99,6 +117,20 @@ public class MediaUtils {
                 mp3Info.setDuration(duration);
                 mp3Info.setSize(size);
                 mp3Info.setUrl(url);
+                mp3Info.setDisplayName(dispalyename);
+
+                if(ChineseUtil.isMessyCode(mp3Info.getTittle()) || mp3Info.getTittle().contains("??")){
+                    dispalyename=dispalyename.substring(0, dispalyename.lastIndexOf('.')); //去掉".mp3"
+                    mp3Info.setTittle(dispalyename);
+                }
+
+                if(ChineseUtil.isMessyCode(mp3Info.getArtist()) || mp3Info.getArtist().contains("??")){
+                    mp3Info.setArtist(BaseApp.appContext.getResources().getString(R.string.weizhi));
+                }
+
+                if(ChineseUtil.isMessyCode(mp3Info.getAlbum()) || mp3Info.getAlbum().contains("??")){
+                    mp3Info.setAlbum(BaseApp.appContext.getResources().getString(R.string.weizhi));
+                }
             }
         }
 
@@ -150,8 +182,8 @@ public class MediaUtils {
         ArrayList<Mp3Info> mp3Infos = new ArrayList<Mp3Info>();
         for(int i=0;i<cursor.getCount();i++){
             cursor.moveToNext();
-            temp_name = cursor.getString(cursor.getColumnIndex(MediaStore.Video.Media.DATA));
-            if(temp_name.contains("/mnt/usb_storage")) {
+            temp_name = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA));
+            if(temp_name!=null && temp_name.contains(Contents.USB_PATH)) {
                 Mp3Info mp3Info = new Mp3Info();
                 long id = cursor.getLong(cursor.getColumnIndex(MediaStore.Audio.Media._ID));
                 String title = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.TITLE));
@@ -162,6 +194,7 @@ public class MediaUtils {
                 long size = cursor.getLong(cursor.getColumnIndex(MediaStore.Audio.Media.SIZE));
                 String url = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA));
                 int isMusic = cursor.getInt(cursor.getColumnIndex(MediaStore.Audio.Media.IS_MUSIC));
+                String dispalyename = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DISPLAY_NAME));
 
                 if (isMusic != 0) {
                     mp3Info.setId(id);
@@ -172,7 +205,20 @@ public class MediaUtils {
                     mp3Info.setDuration(duration);
                     mp3Info.setSize(size);
                     mp3Info.setUrl(url);
+                    mp3Info.setDisplayName(dispalyename);
 
+                    if(ChineseUtil.isMessyCode(mp3Info.getTittle()) || mp3Info.getTittle().contains("??")){
+                        dispalyename=dispalyename.substring(0, dispalyename.lastIndexOf('.')); //去掉".mp3"
+                        mp3Info.setTittle(dispalyename);
+                    }
+
+                    if(ChineseUtil.isMessyCode(mp3Info.getArtist()) || mp3Info.getArtist().contains("??")){
+                        mp3Info.setArtist(BaseApp.appContext.getResources().getString(R.string.weizhi));
+                    }
+
+                    if(ChineseUtil.isMessyCode(mp3Info.getAlbum()) || mp3Info.getAlbum().contains("??")){
+                        mp3Info.setAlbum(BaseApp.appContext.getResources().getString(R.string.weizhi));
+                    }
                     mp3Infos.add(mp3Info);
                 }
             }
@@ -192,8 +238,8 @@ public class MediaUtils {
         ArrayList<Mp3Info> mp3Infos = new ArrayList<Mp3Info>();
         for(int i=0;i<cursor.getCount();i++){
             cursor.moveToNext();
-            temp_name = cursor.getString(cursor.getColumnIndex(MediaStore.Video.Media.DATA));
-            if(temp_name.contains("/mnt/external_sd0")) {
+            temp_name = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA));
+            if(temp_name!=null &&  temp_name.contains(Contents.SDCARD_PATH)) {
                 Mp3Info mp3Info = new Mp3Info();
                 long id = cursor.getLong(cursor.getColumnIndex(MediaStore.Audio.Media._ID));
                 String title = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.TITLE));
@@ -204,6 +250,7 @@ public class MediaUtils {
                 long size = cursor.getLong(cursor.getColumnIndex(MediaStore.Audio.Media.SIZE));
                 String url = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA));
                 int isMusic = cursor.getInt(cursor.getColumnIndex(MediaStore.Audio.Media.IS_MUSIC));
+                String dispalyename = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DISPLAY_NAME));
 
                 if (isMusic != 0) {
                     mp3Info.setId(id);
@@ -214,6 +261,20 @@ public class MediaUtils {
                     mp3Info.setDuration(duration);
                     mp3Info.setSize(size);
                     mp3Info.setUrl(url);
+                    mp3Info.setDisplayName(dispalyename);
+                    //处理乱码问题
+                    if(ChineseUtil.isMessyCode(mp3Info.getTittle()) || mp3Info.getTittle().contains("??")){
+                        dispalyename=dispalyename.substring(0, dispalyename.lastIndexOf('.')); //去掉".mp3"
+                        mp3Info.setTittle(dispalyename);
+                    }
+
+                    if(ChineseUtil.isMessyCode(mp3Info.getArtist()) || mp3Info.getArtist().contains("??")){
+                        mp3Info.setArtist(BaseApp.appContext.getResources().getString(R.string.weizhi));
+                    }
+
+                    if(ChineseUtil.isMessyCode(mp3Info.getAlbum()) || mp3Info.getAlbum().contains("??")){
+                        mp3Info.setAlbum(BaseApp.appContext.getResources().getString(R.string.weizhi));
+                    }
 
                     mp3Infos.add(mp3Info);
                 }
@@ -310,10 +371,13 @@ public class MediaUtils {
 
             }else{
                 Uri uri = ContentUris.withAppendedId(albumArtUri, albumid);
-                ParcelFileDescriptor pfd  =context.getContentResolver()
-                        .openFileDescriptor(uri, "r");
-                if(pfd!=null){
-                    fd = pfd.getFileDescriptor();
+                try {
+                    ParcelFileDescriptor pfd = context.getContentResolver().openFileDescriptor(uri, "r");//这个函数导致闪退现象很恐怖,
+                    if(pfd!=null){
+                        fd = pfd.getFileDescriptor();
+                    }
+                }catch(FileNotFoundException e){
+                    e.printStackTrace();
                 }
             }
 
@@ -386,7 +450,8 @@ public class MediaUtils {
 
             } catch (FileNotFoundException e) {
                 BaseUtils.mlog(TAG,"MediaUtils-getArtwork----------21" + "----");
-                Bitmap bm = getArtworkFromFile(context,song_id,album_id);
+//                Bitmap bm = getArtworkFromFile(context,song_id,album_id);  //这个函数导致闪退现象很恐怖
+                Bitmap  bm = BitmapFactory.decodeResource(context.getResources(), R.mipmap.yinyue);
                 if(bm!=null){
                     if (bm.getConfig() ==null){
                         bm = bm.copy(Bitmap.Config.RGB_565,false);
@@ -394,7 +459,6 @@ public class MediaUtils {
                             return getDefaultArtwork(context,small);
                         }
                     }
-
                 }else if(allowdefault){
                     bm=getDefaultArtwork(context,small);
                 }
@@ -428,8 +492,8 @@ public class MediaUtils {
         }
         BaseUtils.mlog(TAG,"MediaUtils-computeSampleSize--inSampleSize=" + inSampleSize);
         return inSampleSize;
-
     }
+
 
 
 }

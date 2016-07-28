@@ -48,16 +48,34 @@ public class PictureFragment extends Fragment {
     private Matrix matrix = new Matrix();
     private Matrix savedMatrix = new Matrix();
     private PointF start = new PointF();
-    private PointF mid = new PointF();
+    private PointF mid = new PointF();  //记录两个触点的中间点
+    private PointF end = new PointF();
+    private PointF point_one_start = new PointF();
+    private PointF point_one_end = new PointF();
+
     DisplayMetrics dm;
     float minScaleR=0.5f;
     float MAX_SCALE = 2f;
     float bigSize = 1.25f;
     float smallSize = 0.8f;
+    private long firstTime = 0;  //记录第一次点击的时间
 
     PicUIUpdateListener picUIUpdateListener;
-
+    private volatile static PictureFragment pic_instance = null;
     public PictureFragment() {
+    }
+
+    public static PictureFragment getInstance(Context context){
+        if(pic_instance == null){
+            synchronized (PictureFragment.class) {
+                if (pic_instance == null){
+                    pic_instance = new PictureFragment();
+                }else{
+                    BaseUtils.mlog(TAG,"已经存在相应的实例了");
+                }
+            }
+        }
+        return pic_instance;
     }
 
     @Override
@@ -113,79 +131,139 @@ public class PictureFragment extends Fragment {
                     BaseApp.ifliebiaoOpen = 0;
                     picUIUpdateListener.onPicLieBiaoClose();
                 }else{
-                    if(!ifzoom){
-                        if (isshowtitle) {//标题显示了，需要隐藏
-                            pic_shanglan_textview.setVisibility(View.GONE);
-                            isshowtitle = false;
-                        } else {
-                            String path = null;
-                            if(BaseApp.playSourceManager ==0) {
-                                path = BaseApp.picInfos.get(BaseApp.current_pic_play_numUSB).getData();
-                            }else if(BaseApp.playSourceManager == 3){
-                                path = BaseApp.picInfosSD.get(BaseApp.current_pic_play_numSD).getData();
-                            }
-                            String parentName = new File(path).getParentFile().getName();
-                            pic_shanglan_textview.setVisibility(View.VISIBLE);
-                            pic_shanglan_textview.setText(parentName);
-                            System.out.println(parentName);
-                            isshowtitle = true;
-                            myPicHandler.sendEmptyMessageDelayed(2, 5000);
-                        }
-                    }else{
-                        switch (event.getAction() & MotionEvent.ACTION_MASK) {
-                            case MotionEvent.ACTION_DOWN:
-                                matrix.set(view.getImageMatrix());
-                                savedMatrix.set(matrix);
-                                start.set(event.getX(), event.getY());
-                                mode = DRAG;
-                                break;
-                            case MotionEvent.ACTION_UP:
-                            case MotionEvent.ACTION_POINTER_UP:
-                                mode = NONE;
-                                break;
-                            case MotionEvent.ACTION_POINTER_DOWN:
-                                oldDist = spacing(event);
-                                if (oldDist > 10f) {
-                                    matrix.set(view.getImageMatrix());
-                                    savedMatrix.set(matrix);
-                                    midPoint(mid, event);
-                                    mode = ZOOM;
-                                }
-                                break;
-                            case MotionEvent.ACTION_MOVE:
-                                if (mode == DRAG) {
-                                    matrix.set(savedMatrix);
-                                    matrix.postTranslate(event.getX() - start.x,event.getY() - start.y);  //
-                                }else if (mode == ZOOM) {
-                                    float newDist = spacing(event);
-                                    if (newDist > 20f) {
-                                        matrix.set(savedMatrix);
-                                        float scale = newDist / oldDist;
-
-                                        float p[] = new float[9];
-                                        matrix.getValues(p);    //p会每次都变化
-
-                                        BaseUtils.mlog(TAG, "P[0]------:" + p[0] + "scale---:" + scale);
-                                        if((p[0] < minScaleR) && scale < 1){  //限制最小和最大视图
-                                            matrix.postScale(1, 1, mid.x, mid.y);
-                                        }else if((p[0] > MAX_SCALE) && scale > 1){
-                                            matrix.postScale(1, 1, mid.x, mid.y);
-                                        }else {
-                                            matrix.postScale(scale, scale, mid.x, mid.y);
+                    BaseUtils.mlog(TAG, "触摸事件发生了");
+                    switch (event.getAction() & MotionEvent.ACTION_MASK) {
+                        case MotionEvent.ACTION_DOWN:
+                            matrix.set(view.getImageMatrix());
+                            savedMatrix.set(matrix);
+                            start.set(event.getX(), event.getY());
+                            mode = DRAG;
+                            break;
+                        case MotionEvent.ACTION_UP:
+                            BaseUtils.mlog(TAG, "单点的触摸起来了");
+                            mode = NONE;
+                            end.set(event.getX(),event.getY());
+                            BaseUtils.mlog(TAG, "X轴---" + (start.x - end.x)+"   Y轴---"+(start.y-end.y));
+                            if(Math.abs(start.x-end.x)<10 && Math.abs(start.y-end.y)<10){//判断为点击事件
+                                long secondTime = System.currentTimeMillis();
+                                if (secondTime - firstTime < 1000) {  //小于2秒判断为双击事件，返回原图大小
+                                    playPic();
+                                }else {
+                                    firstTime = secondTime;//更新firstTime
+                                    if (isshowtitle) {//标题显示了，需要隐藏
+                                        pic_shanglan_textview.setVisibility(View.GONE);
+                                        myPicHandler.removeMessages(2);  //取消发送的消息
+                                        isshowtitle = false;
+                                    } else {
+                                        String path = null;
+                                        if (BaseApp.playSourceManager == 0) {
+                                            path = BaseApp.picInfos.get(BaseApp.current_pic_play_numUSB).getData();
+                                        } else if (BaseApp.playSourceManager == 3) {
+                                            path = BaseApp.picInfosSD.get(BaseApp.current_pic_play_numSD).getData();
                                         }
+                                        String parentName = new File(path).getParentFile().getName();
+                                        pic_shanglan_textview.setVisibility(View.VISIBLE);
+                                        pic_shanglan_textview.setText(parentName);
+                                        System.out.println(parentName);
+                                        isshowtitle = true;
+                                        myPicHandler.sendEmptyMessageDelayed(2, 5000);
                                     }
                                 }
-                                break;
-                        }
-                        view.setImageMatrix(matrix);
+                            }else if(end.x-start.x > 50 && (Math.abs(end.y - start.y) < 100) && mode!=ZOOM && !ifzoom){
+                                playPicpre();
+                            }else if(start.x - end.x > 50 && (Math.abs(start.y - end.y) < 100) && mode!=ZOOM && !ifzoom){
+                                playPicnext();
+                            }
+
+                            float p1[] = new float[9];
+                            float p2[] = new float[9];
+                            matrix.getValues(p1);
+                            savedMatrix.getValues(p2);
+                            if(p2[0]>1 && 1>p1[0]){  //从放大状态到了缩小状态,将图片居中显示
+                                playPicZoom(p1[0]);
+                            }
+                            break;
+
+                        case MotionEvent.ACTION_POINTER_DOWN:
+                            oldDist = spacing(event);   //两点按下的距离
+                            if (oldDist > 10f) {
+                                matrix.set(view.getImageMatrix());
+                                savedMatrix.set(matrix);
+                                midPoint(mid, event);  //设置mid为两个触点的中间点坐标
+                                mode = ZOOM;
+                            }
+                            point_one_start.set(event.getX(),event.getY());
+                            break;
+                        case MotionEvent.ACTION_POINTER_UP:
+                            BaseUtils.mlog(TAG, "多点的触摸起来了");
+                            point_one_end.set(event.getX(),event.getY());
+                            mode = NONE;
+                            if(Math.abs(point_one_start.x-point_one_end.x)<10 && Math.abs(point_one_start.y-point_one_end.y)<10){//判断为点击事件
+                                if (isshowtitle) {//标题显示了，需要隐藏
+                                    pic_shanglan_textview.setVisibility(View.GONE);
+                                    myPicHandler.removeMessages(2);  //取消发送的消息
+                                    isshowtitle = false;
+                                } else {
+                                    String path = null;
+                                    if(BaseApp.playSourceManager ==0) {
+                                        path = BaseApp.picInfos.get(BaseApp.current_pic_play_numUSB).getData();
+                                    }else if(BaseApp.playSourceManager == 3){
+                                        path = BaseApp.picInfosSD.get(BaseApp.current_pic_play_numSD).getData();
+                                    }
+                                    String parentName = new File(path).getParentFile().getName();
+                                    pic_shanglan_textview.setVisibility(View.VISIBLE);
+                                    pic_shanglan_textview.setText(parentName);
+                                    System.out.println(parentName);
+                                    isshowtitle = true;
+                                    myPicHandler.sendEmptyMessageDelayed(2, 5000);
+                                }
+                            }
+                            break;
+                        case MotionEvent.ACTION_MOVE:
+                            if (mode == DRAG) {
+                                if(ifzoom) { //只有缩放之后，才能移动
+                                    matrix.set(savedMatrix);
+                                    float p[] = new float[9];
+                                    matrix.getValues(p);    //p会每次都变化
+                                    if(p[0] > 1) {
+                                        BaseUtils.mlog(TAG, view.getTop() + "----");
+                                        matrix.postTranslate(event.getX() - start.x, event.getY() - start.y);  //
+                                    }
+                                }
+                                view.setImageMatrix(matrix);
+                            }else if (mode == ZOOM) {
+                                float newDist = spacing(event);
+                                if (newDist > 20f) {
+                                    ifzoom = true;  //双指缩放
+                                    matrix.set(savedMatrix);
+                                    float scale = newDist / oldDist;
+                                    float p[] = new float[9];
+                                    matrix.getValues(p);    //p会每次都变化
+
+                                    BaseUtils.mlog(TAG, "P[0]------:" + p[0] + "scale---:" + scale);
+                                    if((p[0] < minScaleR) && scale < 1){  //限制最小和最大视图
+//                                        matrix.postScale(1, 1, mid.x, mid.y);
+                                        matrix.postScale(1, 1, 400, 180);
+                                    }else if((p[0] > MAX_SCALE) && scale > 1){
+//                                        matrix.postScale(1, 1, mid.x, mid.y);
+                                        matrix.postScale(1, 1, 400, 180);
+                                    }else {
+//                                      matrix.postScale(scale, scale, mid.x, mid.y);
+                                        matrix.postScale(scale, scale, 400, 180);
+                                    }
+                                    view.setImageMatrix(matrix);
+                                }else{
+                                    view.setImageMatrix(matrix);
+                                }
+
+                            }else {
+                                view.setImageMatrix(matrix);
+                            }
+
+                            break;
                     }
                 }
-                if(ifzoom){
-                    return true;//true 表示进行缩放，false表示没有
-                }else{
-                    return false;
-                }
-
+                return true;
             }
 
             private float spacing(MotionEvent event)
@@ -258,7 +336,7 @@ public class PictureFragment extends Fragment {
         }
     }
 
-    public void setImageShow(int position){
+    public void setImageShow(int position){  //从列表点击显示图片
         ifzoom = false;
         if(BaseApp.playSourceManager == 0) {
             BaseApp.current_pic_play_numUSB = position;
@@ -299,6 +377,49 @@ public class PictureFragment extends Fragment {
         setImage(newmatrix);
     }
 
+    public void playPicZoom(float p0){  //在放大至缩小的时候还原图片于中心位置
+        String mybigPicPath = null;
+        if(BaseApp.playSourceManager == 0) {
+            mybigPicPath = BaseApp.picInfos.get(BaseApp.current_pic_play_numUSB).getData();
+        }else if(BaseApp.playSourceManager == 3){
+            mybigPicPath = BaseApp.picInfosSD.get(BaseApp.current_pic_play_numSD).getData();
+        }
+        Bitmap bm = convertToBitmap(mybigPicPath, 800, 360);
+        big_pic_show.setImageBitmap(bm);
+        Matrix newmatrix = new Matrix();
+        float deltaY = 180-p0*bm.getHeight()/2;  //view的高度就是350
+
+        BaseUtils.mlog(TAG,"view Height:360" + "-----bitmap Height:" + (180 - deltaY));
+        float deltaX = 400 - p0*bm.getWidth()/2;  // view的宽度就是800
+
+        BaseUtils.mlog(TAG, "view width:800" + "-----bitmap width:" + (180 -deltaX));
+        newmatrix.postScale(p0, p0);
+        newmatrix.postTranslate(deltaX, deltaY);
+        setImage(newmatrix);
+    }
+
+    public void playPic(){
+        ifzoom = false;
+        String mybigPicPath = null;
+        if(BaseApp.playSourceManager == 0) {
+            mybigPicPath = BaseApp.picInfos.get(BaseApp.current_pic_play_numUSB).getData();
+        }else if(BaseApp.playSourceManager == 3){
+            mybigPicPath = BaseApp.picInfosSD.get(BaseApp.current_pic_play_numSD).getData();
+        }
+        Bitmap bm = convertToBitmap(mybigPicPath, 800, 360);
+        big_pic_show.setImageBitmap(bm);
+        Matrix newmatrix = new Matrix();
+        float deltaY = 180-bm.getHeight()/2;  //view的高度就是350
+
+        BaseUtils.mlog(TAG,"view Height:360" + "-----bitmap Height:" + bm.getHeight());
+        float deltaX = 400 - bm.getWidth()/2;  // view的宽度就是800
+
+        BaseUtils.mlog(TAG, "view width:800" + "-----bitmap width:" + bm.getWidth());
+        newmatrix.postTranslate(deltaX, deltaY);
+        setImage(newmatrix);
+    }
+
+
     public void playPicnext(){
         String mybigPicPath = null;
         if(BaseApp.playSourceManager == 0) {
@@ -333,7 +454,7 @@ public class PictureFragment extends Fragment {
 
         BaseUtils.mlog(TAG, "view width:400" + "-----bitmap width:" + bm.getWidth());
         newmatrix.postTranslate(deltaX, deltaY);
-//        big_pic_show.setImageMatrix(newmatrix);
+
         setImage(newmatrix);
     }
 
@@ -356,7 +477,6 @@ public class PictureFragment extends Fragment {
     }
 
     public void pic_play_fangda(){
-
         BaseUtils.mlog(TAG,"-pic_play_fangda-"+"come in fangda...");
         ifzoom = true;
         myBitmap = ((BitmapDrawable) big_pic_show.getDrawable()).getBitmap();

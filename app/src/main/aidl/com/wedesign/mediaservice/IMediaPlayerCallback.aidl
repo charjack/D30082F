@@ -1,5 +1,5 @@
 // IMediaPlayerCallback.aidl
-package com.wedesign.mediaplayerservice;
+package com.wedesign.mediaservice;
 
 // Declare any non-default types here with import statements
 

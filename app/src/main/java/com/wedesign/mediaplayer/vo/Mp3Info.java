@@ -13,8 +13,14 @@ public class Mp3Info {
     private long duration;//歌曲时长
     private long size;//大小
     private String url;//路径
-    private int isMusic;//是否是音乐
+    private String displayName;//显示的名称
 
+    public String getDisplayName() {
+        return displayName;
+    }
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
     public long getMp3InfoId() {
         return mp3InfoId;
     }
@@ -86,13 +92,6 @@ public class Mp3Info {
         this.url = url;
     }
 
-    public int getIsMusic() {
-        return isMusic;
-    }
-
-    public void setIsMusic(int isMusic) {
-        this.isMusic = isMusic;
-    }
 
     @Override
     public String toString() {
@@ -106,7 +105,6 @@ public class Mp3Info {
                 ", duration=" + duration +
                 ", size=" + size +
                 ", url='" + url + '\'' +
-                ", isMusic=" + isMusic +
                 '}';
     }
 }

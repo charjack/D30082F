@@ -4,6 +4,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.provider.MediaStore;
 
+import com.wedesign.mediaplayer.vo.Contents;
 import com.wedesign.mediaplayer.vo.Mp4Info;
 
 import java.util.ArrayList;
@@ -25,7 +26,7 @@ public class Mp4MediaUtils {
         for(int i=0;i<cursor.getCount();i++){
             cursor.moveToNext();
             temp_name = cursor.getString(cursor.getColumnIndex(MediaStore.Video.Media.DATA));
-            if (temp_name.contains("/mnt/usb_storage")) {
+            if (temp_name.contains(Contents.USB_PATH)) {
                 Mp4Info mp4Info = new Mp4Info();
                 long id = cursor.getLong(cursor.getColumnIndex(MediaStore.Video.Media._ID));
                 String display_name = cursor.getString(cursor.getColumnIndex(MediaStore.Video.Media.DISPLAY_NAME));
@@ -36,7 +37,6 @@ public class Mp4MediaUtils {
                 mp4Info.setDisplay_name(display_name);
                 mp4Info.setData(data);
                 mp4Info.setDuration(duration);
-                mp4Info.setVideo_item_progressed(0);
                 mp4Infos.add(mp4Info);
             }
         }
@@ -56,7 +56,7 @@ public class Mp4MediaUtils {
         for(int i=0;i<cursor.getCount();i++){
             cursor.moveToNext();
             temp_name = cursor.getString(cursor.getColumnIndex(MediaStore.Video.Media.DATA));
-            if (temp_name.contains("/mnt/external_sd0")) {
+            if (temp_name.contains(Contents.SDCARD_PATH)) {
                 Mp4Info mp4Info = new Mp4Info();
                 long id = cursor.getLong(cursor.getColumnIndex(MediaStore.Video.Media._ID));
                 String display_name = cursor.getString(cursor.getColumnIndex(MediaStore.Video.Media.DISPLAY_NAME));
@@ -67,7 +67,6 @@ public class Mp4MediaUtils {
                 mp4Info.setDisplay_name(display_name);
                 mp4Info.setData(data);
                 mp4Info.setDuration(duration);
-                mp4Info.setVideo_item_progressed(0);
                 mp4Infos.add(mp4Info);
             }
         }
@@ -95,7 +94,6 @@ public class Mp4MediaUtils {
             mp4Info.setDisplay_name(display_name);
             mp4Info.setData(data);
             mp4Info.setDuration(duration);
-            mp4Info.setVideo_item_progressed(0);
         }
 
         cursor.close();

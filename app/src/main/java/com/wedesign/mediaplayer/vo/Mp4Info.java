@@ -8,15 +8,6 @@ public class Mp4Info {
     String display_name;
     String data;
     long duration = 0;
-    long video_item_progressed = 0;
-
-    public long getVideo_item_progressed() {
-        return video_item_progressed;
-    }
-
-    public void setVideo_item_progressed(long video_item_progressed) {
-        this.video_item_progressed = video_item_progressed;
-    }
 
     public long getDuration() {
         return duration;

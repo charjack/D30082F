@@ -16,7 +16,7 @@
         android:id="@+id/pic_shanglan_textview"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@mipmap/shanglan_pic"
+        android:background="#80000000"
         android:text="图片文件夹名"
         android:singleLine="true"
         android:textSize="30sp"

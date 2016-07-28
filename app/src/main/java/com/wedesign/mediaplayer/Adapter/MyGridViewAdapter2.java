@@ -69,7 +69,10 @@ public class MyGridViewAdapter2 extends BaseAdapter {
 
     @Override
     public int getCount() {
-        return pic_lists.size();
+        if(pic_lists!=null && pic_lists.size()>0) {  //竟然也会报空指针问题，拔插u盘的时候
+            return pic_lists.size();
+        }
+        return 0;
     }
 
     @Override

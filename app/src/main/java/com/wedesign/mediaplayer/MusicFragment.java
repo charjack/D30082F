@@ -2,6 +2,9 @@ package com.wedesign.mediaplayer;
 
 import android.app.Activity;
 import android.app.Fragment;
+import android.app.FragmentManager;
+import android.content.Context;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.text.method.ScrollingMovementMethod;
@@ -17,7 +20,9 @@ import android.widget.TextView;
 
 
 import com.wedesign.mediaplayer.Utils.BaseUtils;
+import com.wedesign.mediaplayer.Utils.MediaUtils;
 import com.wedesign.mediaplayer.vo.Contents;
+import com.wedesign.mediaplayer.vo.Mp3Info;
 
 import java.io.File;
 
@@ -40,16 +45,38 @@ public class MusicFragment extends Fragment {
     LinearLayout progress_really_layout;
     TextView song_current_time,song_total_time;
     RelativeLayout mp3_info_ui;
-    ImageButton button_bluetooth,button_usb,button_aux,button_SDCard;
+//    LinearLayout come_from_layout;
+//    ImageButton button_bluetooth,button_usb,button_aux,button_SDCard;
 
     public MusicUIUpdateListener musicUIUpdateListener;
-
+    public View view = null;
+    private volatile static MusicFragment music_instance = null;
     public MusicFragment() {
+    }
+    public static MusicFragment getInstance(Context context){
+        if(music_instance == null){
+            synchronized (MusicFragment.class) {
+                if (music_instance == null){
+                    music_instance = new MusicFragment();
+                }else{
+                    BaseUtils.mlog(TAG,"已经存在相应的实例了");
+                }
+            }
+        }
+        return music_instance;
+    }
+
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
     }
 
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
+
+        BaseUtils.mlog(TAG,"onAttach---");
         musicUIUpdateListener = (MusicUIUpdateListener) activity;
     }
 
@@ -58,13 +85,12 @@ public class MusicFragment extends Fragment {
                              Bundle savedInstanceState) {
         BaseUtils.mlog(TAG,"------onCreateView-----");
         // Inflate the layout for this fragment
-        View view  =inflater.inflate(R.layout.fragment_music, container, false);
+        view = inflater.inflate(R.layout.fragment_music, container, false);
         song_info_layout = (LinearLayout) view.findViewById(R.id.song_info_layout);
-        bt_device_name  = (TextView) view.findViewById(R.id.bt_device_name);
+        bt_device_name = (TextView) view.findViewById(R.id.bt_device_name);
         zhuanji_layout = (LinearLayout) view.findViewById(R.id.zhuanji_layout);
         singer_layout = (LinearLayout) view.findViewById(R.id.singer_layout);
         order_layout = (LinearLayout) view.findViewById(R.id.order_layout);
-
         mp3_info_ui = (RelativeLayout) view.findViewById(R.id.mp3_info_ui);
         mp3_info_ui.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -86,91 +112,18 @@ public class MusicFragment extends Fragment {
         chuangzhe_name = (TextView) view.findViewById(R.id.chuangzhe_name);
         num_order = (TextView) view.findViewById(R.id.num_order);
 
-        button_usb = (ImageButton) view.findViewById(R.id.button_usb);
-        button_bluetooth = (ImageButton) view.findViewById(R.id.button_bluetooth);
-        button_aux = (ImageButton) view.findViewById(R.id.button_aux);
-        button_SDCard = (ImageButton) view.findViewById(R.id.button_SDCard);
-
-        button_usb.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                BaseUtils.mlog(TAG,"button_usb----CLICK");
-                if(BaseApp.ifhaveUSBdevice && BaseApp.playSourceManager != 0) {  //u盘拔出后，点击无效了 && MainActivity.mDeviceStateUSB == Contents.USB_DEVICE_STATE_SCANNER_FINISHED
-                    musicUIUpdateListener.onSavePlaySource(0);  //sp中保存当前播放的source
-                    BaseApp.last_playSourceManager = BaseApp.playSourceManager;
-                    BaseApp.playSourceManager = 0;
-                    button_bluetooth.setBackgroundResource(R.mipmap.touming_b);
-                    button_aux.setBackgroundResource(R.mipmap.touming_b);
-                    button_SDCard.setBackgroundResource(R.mipmap.touming_b);
-                    button_usb.setBackgroundResource(R.mipmap.yinyuan_p);
-                    musicUIUpdateListener.onYinyuanChangeToUSB();
-                }
-            }
-        });
-
-        button_bluetooth.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                BaseUtils.mlog(TAG,"button_bluetooth----CLICK");
-                if(BaseApp.ifBluetoothConnected && BaseApp.playSourceManager != 1){
-                    musicUIUpdateListener.onSavePlaySource(1);
-                    BaseApp.last_playSourceManager = BaseApp.playSourceManager ;
-                    BaseApp.playSourceManager = 1;
-                    button_usb.setBackgroundResource(R.mipmap.touming_b);
-                    button_bluetooth.setBackgroundResource(R.mipmap.yinyuan_p);
-                    button_aux.setBackgroundResource(R.mipmap.touming_b);
-                    button_SDCard.setBackgroundResource(R.mipmap.touming_b);
-                    musicUIUpdateListener.onYinyuanChangeToBT();
-                }
-            }
-        });
-
-        button_aux.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                BaseUtils.mlog(TAG, "button_aux----CLICK");
-                if(BaseApp.playSourceManager != 2) {
-                    musicUIUpdateListener.onSavePlaySource(2);
-                    BaseApp.last_playSourceManager = BaseApp.playSourceManager ;
-                    BaseApp.playSourceManager = 2;
-                    button_usb.setBackgroundResource(R.mipmap.touming_b);
-                    button_bluetooth.setBackgroundResource(R.mipmap.touming_b);
-                    button_aux.setBackgroundResource(R.mipmap.yinyuan_p);
-                    button_SDCard.setBackgroundResource(R.mipmap.touming_b);
-                    musicUIUpdateListener.onAUXEent();
-                }
-            }
-        });
-
-        button_SDCard.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                BaseUtils.mlog(TAG,"button_SDCard----CLICK");
-                if(BaseApp.ifhavaSDdevice && BaseApp.playSourceManager != 3) {
-                    musicUIUpdateListener.onSavePlaySource(3);
-                    BaseApp.last_playSourceManager = BaseApp.playSourceManager ;
-                    BaseApp.playSourceManager = 3;
-                    button_usb.setBackgroundResource(R.mipmap.touming_b);
-                    button_bluetooth.setBackgroundResource(R.mipmap.touming_b);
-                    button_aux.setBackgroundResource(R.mipmap.touming_b);
-                    button_SDCard.setBackgroundResource(R.mipmap.yinyuan_p);
-                    musicUIUpdateListener.onYinyuanChangeToSD();
-                }
-            }
-        });
-
         progress_really_layout = (LinearLayout) view.findViewById(R.id.progress_really_layout);
         seekBar1 = (SeekBar) view.findViewById(R.id.seekBar1);
         seekBar1.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser) {
-                    if(BaseApp.playSourceManager == 0) {
+                    if (BaseApp.playSourceManager == 0 && BaseApp.current_music_play_progressUSB > 0) {
                         BaseApp.current_music_play_progressUSB = progress;
                         seekBar.setProgress(progress);
                         musicUIUpdateListener.onServiceCommand(1);  //拖动
-                    }else if(BaseApp.playSourceManager == 3){
-                        BaseApp.current_music_play_progressSD  = progress;
+                    } else if (BaseApp.playSourceManager == 3 && BaseApp.current_music_play_progressSD > 0) {
+                        BaseApp.current_music_play_progressSD = progress;
                         seekBar.setProgress(progress);
                         musicUIUpdateListener.onServiceCommand(1);  //拖动
                     }
@@ -187,56 +140,75 @@ public class MusicFragment extends Fragment {
                 musicUIUpdateListener.onServiceCommand(3);  //拖动结束
             }
         });
+        song_current_time = (TextView) view.findViewById(R.id.song_current_time);
+        song_total_time = (TextView) view.findViewById(R.id.song_total_time);
 
-        song_current_time=(TextView) view.findViewById(R.id.song_current_time);
-        song_total_time=(TextView) view.findViewById(R.id.song_total_time);
+        initMusicFragment();
 
-        if(musicUIUpdateListener!=null){
+        if (musicUIUpdateListener != null) {
             musicUIUpdateListener.onMusicCancelCover();
+            musicUIUpdateListener.onRequestFocus();
         }
+        BaseUtils.mlog(TAG, "------onCreateView-----end");
         return view;
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        if(BaseApp.current_fragment == 0) {
-            switch (BaseApp.playSourceManager) {
-                case 0:
-                    button_usb.setBackgroundResource(R.mipmap.yinyuan_p);
-                    break;
-                case 1:
-                    button_bluetooth.setBackgroundResource(R.mipmap.yinyuan_p);
-                    break;
-                case 2:
-                    button_aux.setBackgroundResource(R.mipmap.yinyuan_p);
-                    break;
-                case 3:
-                    button_SDCard.setBackgroundResource(R.mipmap.yinyuan_p);
-                    break;
-            }
-
-            if (BaseApp.ifhaveUSBdevice) {
-                button_usb.setImageResource(R.mipmap.usb_n);
-            } else {
-                button_usb.setImageResource(R.mipmap.usb_p);
-            }
-            if (BaseApp.ifhavaSDdevice) {
-                button_SDCard.setImageResource(R.mipmap.sd_ico_p);
-            } else {
-                button_SDCard.setImageResource(R.mipmap.sd_ico_n);
-            }
-            if (BaseApp.ifBluetoothConnected) {
-                button_bluetooth.setImageResource(R.mipmap.bt_n);
-            } else {
-                button_bluetooth.setImageResource(R.mipmap.bt_p);
-            }
-            button_aux.setImageResource(R.mipmap.aux_n);
-        }
-
-
-
+        BaseUtils.mlog(TAG, "onResume");
     }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        BaseUtils.mlog(TAG, "onStop");
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        BaseUtils.mlog(TAG, "onDetach");
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        BaseUtils.mlog(TAG, "onDestroy");
+    }
+
+     private void initMusicFragment(){//初始化，加载时候的文字和图片，在切换语言后，重新进入，会瞬时显示默认的如“视频名称”这样的，然后 才会跳转
+         BaseUtils.mlog(TAG, "initMusicFragment-----");
+         if(BaseApp.playSourceManager == 0){
+             if(BaseApp.current_music_play_numUSB >=0 && BaseApp.mp3Infos!= null && BaseApp.mp3Infos.size()>0&& BaseApp.current_music_play_progressUSB >0){ //u盘数据已经读取完成了
+                 Mp3Info mp3Info = BaseApp.mp3Infos.get(BaseApp.current_music_play_numUSB);
+                 Bitmap albumBitmap = MediaUtils.getArtwork(BaseApp.appContext, mp3Info.getId(), mp3Info.getAlbumId(), true, false);
+                 album_icon.setImageBitmap(albumBitmap);
+                 song_name.setText(mp3Info.getTittle());
+                 zhuanji_name.setText(mp3Info.getAlbum());
+                 chuangzhe_name.setText(mp3Info.getArtist());
+                 button_play_mode_ico.setImageResource(music_play_mode_resource_ico[BaseApp.music_play_mode]);
+                 button_play_mode_name.setText(button_play_mode_name_ico[BaseApp.music_play_mode]);
+                 num_order.setText((BaseApp.current_music_play_numUSB + 1) + "/" + BaseApp.mp3Infos.size());
+                 song_total_time.setText(MediaUtils.formatTime(mp3Info.getDuration()));
+                 seekBar1.setMax((int) mp3Info.getDuration());
+             }
+         }else if(BaseApp.playSourceManager == 3){
+             if(BaseApp.current_music_play_numSD >=0 && BaseApp.mp3InfosSD!= null && BaseApp.mp3InfosSD.size()>0 && BaseApp.current_music_play_progressSD >0){ //u盘数据已经读取完成了
+                 Mp3Info mp3InfoSD = BaseApp.mp3InfosSD.get(BaseApp.current_music_play_numSD);
+                 Bitmap albumBitmap = MediaUtils.getArtwork(BaseApp.appContext, mp3InfoSD.getId(), mp3InfoSD.getAlbumId(), true, false);
+                 album_icon.setImageBitmap(albumBitmap);
+                 song_name.setText(mp3InfoSD.getTittle());
+                 zhuanji_name.setText(mp3InfoSD.getAlbum());
+                 chuangzhe_name.setText(mp3InfoSD.getArtist());
+                 button_play_mode_ico.setImageResource(music_play_mode_resource_ico[BaseApp.music_play_mode]);
+                 button_play_mode_name.setText(button_play_mode_name_ico[BaseApp.music_play_mode]);
+                 num_order.setText((BaseApp.current_music_play_numSD + 1) + "/" + BaseApp.mp3InfosSD.size());
+                 song_total_time.setText(MediaUtils.formatTime(mp3InfoSD.getDuration()));
+                 seekBar1.setMax((int) mp3InfoSD.getDuration());
+             }
+         }
+     }
 
     void changeMusicPlayModeUI(int playmode){
         button_play_mode_ico.setImageResource(music_play_mode_resource_ico[playmode]);
@@ -246,13 +218,13 @@ public class MusicFragment extends Fragment {
     public interface MusicUIUpdateListener{
         public void onServiceCommand(int i);
         public void onLieBiaoClose();
-        public void onYinyuanChangeToSD();
-        public void onYinyuanChangeToUSB();
-        public void onYinyuanChangeToBT();//进入BT
-        public void onAUXEent();//进入aux
-        public void onSavePlaySource(int sourceID);
         public void onMusicCancelCover();
+        public void onRequestFocus();
     }
 
-
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+//        super.onSaveInstanceState(outState);
+        BaseUtils.mlog(TAG,"---onSaveInstanceState---");
+    }
 }

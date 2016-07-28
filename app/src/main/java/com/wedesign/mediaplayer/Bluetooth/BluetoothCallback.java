@@ -25,32 +25,26 @@ public class BluetoothCallback extends IBluetoothForApksCallback.Stub{
 
     @Override
     public void onConnectState(boolean hfp_state, boolean a2dp_status) throws RemoteException {
-//       第一次的蓝牙状态已经从服务中获取了，这里不需要再做第一次的判断了
-//        if(BaseApp.ifFirstGetState){
-//            BaseUtils.mlog(TAG, " first-------------onConnectState");//获取连接状态
-//            BaseApp.ifFirstGetState = false;
-//            BaseApp.ifBluetoothConnected = a2dp_status;
-//        }else {
-            BaseUtils.mlog(TAG, "onConnectState");//获取连接状态
+        BaseUtils.mlog(TAG, "onConnectState-----"+a2dp_status);//获取连接状态
         if(BaseApp.ifBluetoothConnected != a2dp_status) {  //切换系统语言时候，会重新调用activity的oncreat，会弹框
+            BaseUtils.mlog(TAG, "onConnectState-----不同的连接状态");//获取连接状态
             BaseApp.ifBluetoothConnected = a2dp_status;
             Handler handler = BtmusicPlay.getHandler();
             if (handler == null)
                 return;
             Message msg = handler.obtainMessage(BtmusicPlay.MSG_CONNECTED_STATE, "" + BaseApp.ifBluetoothConnected);
             handler.sendMessage(msg);
+        }else{
+            BaseUtils.mlog(TAG, "onConnectState-----相同的连接状态");//获取连接状态
         }
-//        }
     }
 
     @Override
-    public void onFinishState(boolean state) throws RemoteException {
+    public void onInitState(boolean state) throws RemoteException {
 
     }
-
     @Override
     public void onPlaystate(boolean state) throws RemoteException {  //状态改变的时候，或者service去查询的时候回调用
-
             Handler handler = BtmusicPlay.getHandler();
             if (handler == null)
                 return;
@@ -61,18 +55,10 @@ public class BluetoothCallback extends IBluetoothForApksCallback.Stub{
 
     @Override
     public void onPinCode(String codePin) throws RemoteException {
-
     }
-
     @Override
     public void onBluetoothName(String Name) throws RemoteException {
-        BaseUtils.mlog(TAG, "onBluetoothName");  //返回当前播放状态 暂停？播放
-
-        Handler handler = BtmusicPlay.getHandler();
-        if (handler == null)
-            return;
-        Message msg = handler.obtainMessage(BtmusicPlay.MSG_CONNECTED_NAME, ""+Name);
-        handler.sendMessage(msg);
+        BaseUtils.mlog(TAG, "onBluetoothName----"+Name);  //
     }
 
     @Override
@@ -80,32 +66,10 @@ public class BluetoothCallback extends IBluetoothForApksCallback.Stub{
 
     }
 
-    /*
-    * id表示源的id
-    * state 表示这个源是否丢失了， true表示丢失了，false表有
-    * */
-    @Override
-    public void onSourceMassage(boolean state, byte id) throws RemoteException {
-        BaseUtils.mlog(TAG, "onSourceMassage");  //是否有了音乐源，源发生变化，或者主动去获取源的时候会被调用
-
-        state = !state;  //服务是这样定义的
-        Handler handler = BtmusicPlay.getHandler();
-        if (handler == null){
-            BaseUtils.mlog(TAG, "onSourceMassage：handler == null");
-            return;
-        }
-        Message msg = handler.obtainMessage(BtmusicPlay.MSG_HAVE_SOURCE);
-        Bundle bundle = new Bundle();
-        bundle.putBoolean("state", state);
-        bundle.putByte("id", id);
-        msg.setData(bundle);
-        handler.sendMessage(msg);
-    }
-
     @Override
     public void onMusicInfo(String name, String artist, int duration, int pos, int total) throws RemoteException {
 
-        BaseUtils.mlog(TAG, "onMusicInfo");
+        BaseUtils.mlog(TAG, "onMusicInfo  name"+name+ "----"+artist);
         Handler handler = BtmusicPlay.getHandler();  //BtmusicPlay类中的hanler
         if (handler == null)
             return;
@@ -124,11 +88,6 @@ public class BluetoothCallback extends IBluetoothForApksCallback.Stub{
     }
 
     @Override
-    public void onPairMode(boolean state) throws RemoteException {
-
-    }
-
-    @Override
     public void onCurrentAndPairList(int index, String name, String addr) throws RemoteException {
 
     }
@@ -141,21 +100,15 @@ public class BluetoothCallback extends IBluetoothForApksCallback.Stub{
     @Override
     public void onCurrentName(String name) throws RemoteException {
         BaseUtils.mlog(TAG,"btphone_name---"+ name);
-            BaseApp.btphone_name = name;
-    }
-
-    @Override
-    public void onAutoConnectStats(boolean state) throws RemoteException {
-
+        BaseApp.btphone_name = name;
+        Handler handler = BtmusicPlay.getHandler();  //BtmusicPlay类中的hanler
+        if (handler == null)
+            return;
+        handler.sendEmptyMessage(BtmusicPlay.MSG_CONNECTED_NAME);
     }
 
     @Override
     public void onAutoConnectAccept(boolean autoConnect, boolean autoAccept) throws RemoteException {
-
-    }
-
-    @Override
-    public void onHfpStatus(int status) throws RemoteException {
 
     }
 
@@ -170,7 +123,7 @@ public class BluetoothCallback extends IBluetoothForApksCallback.Stub{
     }
 
     @Override
-    public void onCallSucceed(String number) throws RemoteException {
+    public void onCallSucceeded(String number) throws RemoteException {
 
     }
 
@@ -185,12 +138,12 @@ public class BluetoothCallback extends IBluetoothForApksCallback.Stub{
     }
 
     @Override
-    public void onCalllog(int type, String number) throws RemoteException {
+    public void onCallHistory(int type, String number) throws RemoteException {
 
     }
 
     @Override
-    public void onCalllogDone() throws RemoteException {
+    public void onCallHistoryDone() throws RemoteException {
 
     }
 
@@ -205,19 +158,10 @@ public class BluetoothCallback extends IBluetoothForApksCallback.Stub{
     }
 
     @Override
-    public void onIncoming(String number) throws RemoteException {
+    public void onIncomingCall(String number) throws RemoteException {
 
     }
 
-    @Override
-    public void onRingStart() throws RemoteException {
-
-    }
-
-    @Override
-    public void onRingStop() throws RemoteException {
-
-    }
 
     @Override
     public void onInPairMode() throws RemoteException {
@@ -230,7 +174,32 @@ public class BluetoothCallback extends IBluetoothForApksCallback.Stub{
     }
 
     @Override
-    public void onCurrentDeviceName(String name) throws RemoteException {
+    public void onFinishCallActivity() throws RemoteException {
+
+    }
+
+    @Override
+    public void onSdkVersion(String version) throws RemoteException {
+
+    }
+
+    @Override
+    public void onConnectingStatus(boolean isConnecting) throws RemoteException {
+
+    }
+
+    @Override
+    public void onContactSyncState(int state) throws RemoteException {
+
+    }
+
+    @Override
+    public void onContactSyncData(String data) throws RemoteException {
+
+    }
+
+    @Override
+    public void onCallKeyInput() throws RemoteException {
 
     }
 
@@ -244,43 +213,4 @@ public class BluetoothCallback extends IBluetoothForApksCallback.Stub{
 
     }
 
-    @Override
-    public void onNextTrack() throws RemoteException {
-        BaseUtils.mlog(TAG, "onNextTrack");
-
-        Handler handler = BtmusicPlay.getHandler();
-        if (handler == null)
-            return;
-        handler.sendEmptyMessage(BtmusicPlay.MSG_NEXT_TRACK);
-    }
-
-    @Override
-    public void onPrevTrack() throws RemoteException {
-        BaseUtils.mlog(TAG, "onPrevTrack");
-
-        Handler handler = BtmusicPlay.getHandler();
-        if (handler == null)
-            return;
-        handler.sendEmptyMessage(BtmusicPlay.MSG_PREV_TRACK);
-    }
-
-    @Override
-    public void onExtEventIn() throws RemoteException {
-        BaseUtils.mlog(TAG, "onExtEventIn");
-
-        Handler handler = BtmusicPlay.getHandler();
-        if (handler == null)
-            return;
-        handler.sendEmptyMessage(BtmusicPlay.MSG_EXTEVENT_IN);
-    }
-
-    @Override
-    public void onExtEventOut() throws RemoteException {
-        BaseUtils.mlog(TAG, "onExtEventOut");
-
-        Handler handler = BtmusicPlay.getHandler();
-        if (handler == null)
-            return;
-        handler.sendEmptyMessage(BtmusicPlay.MSG_EXTEVENT_OUT);
-    }
 }

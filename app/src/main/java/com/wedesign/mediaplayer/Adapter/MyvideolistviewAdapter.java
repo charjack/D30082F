@@ -29,7 +29,10 @@ public class MyvideolistviewAdapter extends BaseAdapter {
 
     @Override
     public int getCount() {
-        return lists.size();
+        if(lists!=null && lists.size()>0) {
+            return lists.size();
+        }
+        return 0;
     }
 
     @Override

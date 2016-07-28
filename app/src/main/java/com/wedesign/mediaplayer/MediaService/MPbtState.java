@@ -1,4 +1,4 @@
-package com.wedesign.mediaplayer.MediaPlayerService;
+package com.wedesign.mediaplayer.MediaService;
 
 import android.content.ComponentName;
 import android.content.Context;
@@ -10,8 +10,8 @@ import android.os.RemoteException;
 
 import com.wedesign.mediaplayer.BaseApp;
 import com.wedesign.mediaplayer.Utils.BaseUtils;
-import com.wedesign.mediaplayerservice.IMediaPlayerCallback;
-import com.wedesign.mediaplayerservice.IMediaPlayerService;
+import com.wedesign.mediaservice.IMediaPlayerCallback;
+import com.wedesign.mediaservice.IMediaPlayerService;
 
 /**
  * Created by NANA on 2016/6/21.
@@ -44,7 +44,7 @@ public class MPbtState {
     public void initBTMP(){
         if(!BaseApp.isbindBTserviceMP) {
             BaseUtils.mlog(TAG, "initBTMP");
-            Intent intentMP = new Intent("com.wedesign.mediaplayerservice.MediaPlayerService");
+            Intent intentMP = new Intent("com.wedesign.mediaservice.MediaPlayerServ");
             mainContext.startService(intentMP);
 
             mainContext.bindService(intentMP, connectionMP, Context.BIND_AUTO_CREATE);

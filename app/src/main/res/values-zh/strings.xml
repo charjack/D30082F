@@ -28,7 +28,12 @@
     <string name="title_activity_base">BaseActivity</string>
     <string name="title_activity_surface_view">SurfaceViewActivity</string>
 
-    <string name="dialog_str_usb">检测到U盘插入.是否切换？</string>
-    <string name="dialog_str_sd">检测到SD卡插入.是否切换？</string>
-    <string name="dialog_str_bt">检测到蓝牙连接了.是否切换？</string>
+    <!--<string name="dialog_str_usb">U盘已插入,是否切换？</string>-->
+    <!--<string name="dialog_str_sd">SD卡已插入,是否切换？</string>-->
+    <!--<string name="dialog_str_bt">蓝牙已连接,是否切换？</string>-->
+    <string name="weizhi">未知</string>
+
+    <string name="brake_name1">为了您的安全</string>
+    <string name="brake_name2">请您停车，启动手刹后观看视频</string>
+
 </resources>

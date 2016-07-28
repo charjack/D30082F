@@ -6,6 +6,7 @@ import android.os.Environment;
 import android.provider.MediaStore;
 
 
+import com.wedesign.mediaplayer.vo.Contents;
 import com.wedesign.mediaplayer.vo.PicInfo;
 
 import java.util.ArrayList;
@@ -70,7 +71,7 @@ public class PicMediaUtils {
         ArrayList<PicInfo> picInfos = new ArrayList<PicInfo>();
         while (cursor.moveToNext()) {
             temp_name = cursor.getString(cursor.getColumnIndex(MediaStore.Images.Media.DATA));
-            if(temp_name.contains("/mnt/usb_storage")) {
+            if(temp_name.contains(Contents.USB_PATH)) {
                 PicInfo picInfo = new PicInfo();
                 long id = cursor.getLong(cursor.getColumnIndex(MediaStore.Images.Media._ID));
                 String display_name = cursor.getString(cursor.getColumnIndex(MediaStore.Images.Media.DISPLAY_NAME));
@@ -98,7 +99,7 @@ public class PicMediaUtils {
         ArrayList<PicInfo> picInfos = new ArrayList<PicInfo>();
         while (cursor.moveToNext()) {
             temp_name = cursor.getString(cursor.getColumnIndex(MediaStore.Images.Media.DATA));
-            if(temp_name.contains("/mnt/external_sd0")) {
+            if(temp_name.contains(Contents.SDCARD_PATH)) {
                 PicInfo picInfo = new PicInfo();
                 long id = cursor.getLong(cursor.getColumnIndex(MediaStore.Images.Media._ID));
                 String display_name = cursor.getString(cursor.getColumnIndex(MediaStore.Images.Media.DISPLAY_NAME));

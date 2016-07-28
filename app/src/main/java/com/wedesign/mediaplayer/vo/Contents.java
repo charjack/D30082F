@@ -60,7 +60,6 @@ public class Contents {
     public static final int BLUETOOTH_PLAY = 666;                   //蓝牙连接上了，发送消息，改变musicfragment
     public static final int BLUETOOTH_CONNECTED = 776;                //蓝牙断开了，发送消息，改变musicfragment
     public static final int BLUETOOTH_DISCONNECTED = 777;                //蓝牙断开了，发送消息，改变musicfragment
-    public static final int BLUETOORH_CHANGE_BOFANG_BUTTON = 888;        //改变蓝牙的播放按钮
 
     public static final int MSG_LOCAL_FIRST_CHANGE_UI= 730;        //改变蓝牙的播放按钮
     public static final int MSG_AUX_FIRST_CHANGE_UI= 731;        //改变蓝牙的播放按钮
@@ -74,7 +73,7 @@ public class Contents {
     public static final int PPT_COMEBAKC = 995;   //处理PPT进入的图片的切换
     public static final int DIRECT_CHANGE_PIC_TO_AUX = 996;   //处理从图片拔掉u盘的情况
     public static final int MSG_CANCEL_COVER = 303;   //把activity主题设置成透明，解决视频卡顿问题，这样导致的透明背景问题，通过盖一层黑色的背景色解决掉
-
-    public static final String USB_PATH = "/mnt/usb_storage";
-    public static final String SDCARD_PATH = "/mnt/external_sd0";
+    public static final int MSG_DO_COVER = 304;   //把activity主题设置成透明，解决视频卡顿问题，这样导致的透明背景问题，通过盖一层黑色的背景色解决掉
+    public static final String USB_PATH =  "/mnt/usb_storage";
+    public static final String SDCARD_PATH ="/mnt/external_sd0";
 }

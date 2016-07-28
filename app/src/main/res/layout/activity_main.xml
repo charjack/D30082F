@@ -27,7 +27,96 @@
             android:visibility="gone"
             />
 
-        <!-- 点击列表出来的列表播放界面-->
+        <RelativeLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:id="@+id/brake_layout"
+            android:visibility="gone"
+            android:layout_centerInParent="true">
+            <ImageView
+                android:id="@+id/danger_image"
+                android:src="@mipmap/disclaimer_ic_warning"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerHorizontal="true"
+                android:layout_margin="5dp"/>
+            <TextView
+                android:id="@+id/danger_textview1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/brake_name1"
+                android:textColor="#fff"
+                android:textSize="30sp"
+                android:layout_below="@+id/danger_image"
+                android:layout_centerHorizontal="true"
+                />
+            <TextView
+                android:id="@+id/danger_textview2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/brake_name2"
+                android:textColor="#fff"
+                android:textSize="30sp"
+                android:layout_below="@+id/danger_textview1"
+                android:layout_centerHorizontal="true"
+                />
+            <Button
+                android:id="@+id/danger_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="手刹设置"
+                android:textColor="#fff"
+                android:textSize="30sp"
+                android:layout_margin="5dp"
+                android:layout_below="@+id/danger_textview2"
+                android:layout_centerHorizontal="true"
+                android:visibility="gone"
+                />
+        </RelativeLayout>
+
+        <LinearLayout
+            android:id="@+id/come_from_layout"
+            android:layout_gravity="right|center_vertical"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@mipmap/yinyuan_background2"
+            android:orientation="vertical">
+            <ImageButton
+                android:id="@+id/button_usb"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@mipmap/touming_b"
+                android:src="@mipmap/usb_p"
+                />
+            <ImageButton
+                android:id="@+id/button_bluetooth"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@mipmap/touming_b"
+                android:src="@mipmap/bt_p"
+                />
+            <ImageButton
+                android:id="@+id/button_aux"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@mipmap/touming_b"
+                android:src="@mipmap/aux_p"
+                />
+            <ImageButton
+                android:id="@+id/button_SDCard"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@mipmap/touming_b"
+                android:src="@mipmap/sd_ico_n"
+                />
+        </LinearLayout>
+
+    <!-- 点击列表出来的列表播放界面-->
         <RelativeLayout
             android:id="@+id/leibieliebiao"
             android:layout_width="470dp"
